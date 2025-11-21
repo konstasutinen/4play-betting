@@ -54,26 +54,51 @@ export default function HomePage() {
 
       // Fetch odds for all games
       if (gamesData && gamesData.length > 0) {
-        const gameIds = gamesData.map(g => g.id)
+        // Fetch all odds with pagination to avoid the 1000 row limit
+        const allOdds: Odd[] = []
+        const RANGE_SIZE = 1000
+        let from = 0
+        let hasMore = true
 
-        const { data: oddsData, error: oddsError } = await supabase
-          .from('odds')
-          .select('*')
-          .in('game_id', gameIds)
+        // Get today's date for filtering
+        const today = new Date().toISOString().split('T')[0]
 
-        if (oddsError) {
-          console.error('Error fetching odds:', oddsError)
-        } else {
-          // Group odds by game_id
-          const oddsMap: Record<string, Odd[]> = {}
-          oddsData?.forEach(odd => {
+        while (hasMore) {
+          const { data: oddsData, error: oddsError } = await supabase
+            .from('odds')
+            .select('*')
+            .range(from, from + RANGE_SIZE - 1)
+
+          if (oddsError) {
+            console.error('Error fetching odds:', oddsError)
+            break
+          }
+
+          if (oddsData && oddsData.length > 0) {
+            allOdds.push(...oddsData)
+            from += RANGE_SIZE
+            hasMore = oddsData.length === RANGE_SIZE
+          } else {
+            hasMore = false
+          }
+        }
+
+        // Group odds by game_id and filter to only games we have
+        const gameIdSet = new Set(gamesData.map(g => g.id))
+        const oddsMap: Record<string, Odd[]> = {}
+
+        allOdds.forEach(odd => {
+          if (gameIdSet.has(odd.game_id)) {
             if (!oddsMap[odd.game_id]) {
               oddsMap[odd.game_id] = []
             }
             oddsMap[odd.game_id].push(odd)
-          })
-          setOdds(oddsMap)
-        }
+          }
+        })
+
+        console.log(`Fetched ${allOdds.length} total odds for ${Object.keys(oddsMap).length} games`)
+        console.log('Sample game odds:', Object.keys(oddsMap)[0], oddsMap[Object.keys(oddsMap)[0]]?.length)
+        setOdds(oddsMap)
       }
 
       setLoading(false)
@@ -204,3 +229,4 @@ export default function HomePage() {
     </div>
   )
 }
+
