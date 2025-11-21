@@ -133,9 +133,13 @@ export default function HomePage() {
 
   const selectedEventIds = selectedPicks.map(p => p.game.event_id)
 
-  const filteredGames = sportFilter === 'all'
-    ? games
-    : games.filter(g => g.sport === sportFilter)
+  // Filter games by sport and also hide games that have already started
+  const now = new Date()
+  const filteredGames = (sportFilter === 'all' ? games : games.filter(g => g.sport === sportFilter))
+    .filter(g => {
+      const gameDateTime = new Date(`${g.date}T${g.time}`)
+      return gameDateTime > now
+    })
 
   if (!user) {
     return null
@@ -148,7 +152,7 @@ export default function HomePage() {
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
             Today&apos;s Games
           </h1>
-          <p className="text-slate-400">Select 4 picks from different games to create your parlay</p>
+          <p className="text-slate-400">Select 4 picks from different games to create your ticket</p>
         </div>
 
         {/* Sport Filter */}

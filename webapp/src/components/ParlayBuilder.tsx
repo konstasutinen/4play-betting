@@ -14,6 +14,7 @@ interface ParlayBuilderProps {
 export default function ParlayBuilder({ picks, onRemovePick, onClearAll }: ParlayBuilderProps) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showSuccess, setShowSuccess] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -31,12 +32,12 @@ export default function ParlayBuilder({ picks, onRemovePick, onClearAll }: Parla
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {
-        setError('You must be logged in to submit a parlay')
+        setError('You must be logged in to submit a ticket')
         setSubmitting(false)
         return
       }
 
-      // Create parlay
+      // Create parlay (ticket)
       const { data: parlay, error: parlayError } = await supabase
         .from('parlays')
         .insert({
@@ -49,10 +50,11 @@ export default function ParlayBuilder({ picks, onRemovePick, onClearAll }: Parla
 
       if (parlayError) throw parlayError
 
-      // Create parlay picks
+      // Create parlay picks - include event_id from the game
       const pickData = picks.map(pick => ({
         parlay_id: parlay.id,
         game_id: pick.game.id,
+        event_id: pick.game.event_id, // Add event_id to fix null constraint error
         market: pick.odd.market,
         option: pick.odd.option,
         odd: pick.odd.odd,
@@ -65,21 +67,60 @@ export default function ParlayBuilder({ picks, onRemovePick, onClearAll }: Parla
 
       if (picksError) throw picksError
 
-      // Success! Clear picks and redirect to profile
-      onClearAll()
-      router.push('/profile')
-      router.refresh()
+      // Success! Show animation
+      setShowSuccess(true)
+      setSubmitting(false)
+
+      // Clear picks and redirect after animation
+      setTimeout(() => {
+        onClearAll()
+        setShowSuccess(false)
+        router.push('/profile')
+        router.refresh()
+      }, 2000)
     } catch (err: any) {
-      setError(err.message || 'Failed to submit parlay')
+      console.error('Submission error:', err)
+      setError(err.message || 'Failed to submit ticket')
       setSubmitting(false)
     }
+  }
+
+  // Success Animation Overlay
+  if (showSuccess) {
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-8 text-center animate-scale-in shadow-2xl">
+          <div className="text-6xl mb-4">🎉</div>
+          <h2 className="text-2xl font-bold text-white mb-2">Ticket Submitted!</h2>
+          <p className="text-purple-100">Good luck with your picks!</p>
+          <div className="mt-4 flex justify-center">
+            <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+        <style jsx>{`
+          @keyframes scale-in {
+            from {
+              transform: scale(0.5);
+              opacity: 0;
+            }
+            to {
+              transform: scale(1);
+              opacity: 1;
+            }
+          }
+          .animate-scale-in {
+            animation: scale-in 0.3s ease-out;
+          }
+        `}</style>
+      </div>
+    )
   }
 
   if (picks.length === 0) {
     return (
       <div className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-sm border-t border-slate-700 p-4 z-40">
         <div className="max-w-7xl mx-auto text-center">
-          <p className="text-slate-400 text-sm">Select 4 picks from different games to create your parlay</p>
+          <p className="text-slate-400 text-sm">Select 4 picks from different games to create your ticket</p>
         </div>
       </div>
     )
@@ -90,7 +131,7 @@ export default function ParlayBuilder({ picks, onRemovePick, onClearAll }: Parla
       <div className="max-w-7xl mx-auto p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-white font-semibold text-sm sm:text-base">
-            Your Parlay ({picks.length}/4)
+            Your Ticket ({picks.length}/4)
           </h3>
           <button
             onClick={onClearAll}
@@ -133,7 +174,7 @@ export default function ParlayBuilder({ picks, onRemovePick, onClearAll }: Parla
 
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1">
-            <p className="text-xs text-slate-400">Total Odds</p>
+            <p className="text-xs text-slate-400">Score</p>
             <p className="text-xl font-bold text-purple-400">{totalOdds.toFixed(2)}</p>
           </div>
           <button
@@ -147,7 +188,7 @@ export default function ParlayBuilder({ picks, onRemovePick, onClearAll }: Parla
               }
             `}
           >
-            {submitting ? 'Submitting...' : isComplete ? 'Submit Parlay' : `Need ${4 - picks.length} more`}
+            {submitting ? 'Submitting...' : isComplete ? 'Submit Ticket' : `Need ${4 - picks.length} more`}
           </button>
         </div>
       </div>
