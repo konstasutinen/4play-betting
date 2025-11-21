@@ -14,10 +14,15 @@ export default function GameCard({ game, odds, onSelectPick, selectedEventIds }:
   const [expanded, setExpanded] = useState(false)
 
   // Get Match Odds - Regular Time (1X2) market
-  const matchOdds = odds.filter(odd => odd.market === 'Match Odds - Regular Time')
+  // Football uses "Full Time", Ice Hockey uses "Match Odds - Regular Time"
+  const matchOdds = odds.filter(odd =>
+    odd.market === 'Match Odds - Regular Time' || odd.market === 'Full Time'
+  )
 
   // Get all other markets
-  const otherMarkets = odds.filter(odd => odd.market !== 'Match Odds - Regular Time')
+  const otherMarkets = odds.filter(odd =>
+    odd.market !== 'Match Odds - Regular Time' && odd.market !== 'Full Time'
+  )
 
   // Group other markets by market name
   const groupedMarkets = otherMarkets.reduce((acc, odd) => {
@@ -77,7 +82,9 @@ export default function GameCard({ game, odds, onSelectPick, selectedEventIds }:
 
         {/* Match Odds (1X2) */}
         <div className="space-y-2">
-          <p className="text-xs text-slate-400 font-medium">Match Odds - Regular Time</p>
+          <p className="text-xs text-slate-400 font-medium">
+            {game.sport === 'Football' ? 'Full Time Result' : 'Match Odds - Regular Time'}
+          </p>
           <div className="grid grid-cols-3 gap-2">
             {matchOdds.map((odd) => (
               <button
