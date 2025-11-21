@@ -50,11 +50,12 @@ export default function ParlayBuilder({ picks, onRemovePick, onClearAll }: Parla
 
       if (parlayError) throw parlayError
 
-      // Create parlay picks - include event_id from the game
+      // Create parlay picks - include event_id and odds_id
       const pickData = picks.map(pick => ({
         parlay_id: parlay.id,
         game_id: pick.game.id,
-        event_id: pick.game.event_id, // Add event_id to fix null constraint error
+        event_id: pick.game.event_id,
+        odds_id: pick.odd.id, // Add odds_id to fix null constraint error
         market: pick.odd.market,
         option: pick.odd.option,
         odd: pick.odd.odd,
