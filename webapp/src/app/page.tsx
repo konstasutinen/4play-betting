@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Game, Odd, SelectedPick } from '@/types/database.types'
 import GameCard from '@/components/GameCard'
-import ParlayBuilder from '@/components/ParlayBuilder'
+import TicketBar from '@/components/TicketBar'
+import SportFilter from '@/components/SportFilter'
 import { useRouter } from 'next/navigation'
 
 export default function HomePage() {
@@ -110,16 +111,28 @@ export default function HomePage() {
   }, [supabase, user])
 
   const handleSelectPick = (pick: SelectedPick) => {
-    // Check if already have 4 picks
+    const existingPick = selectedPicks.find(p => p.game.event_id === pick.game.event_id)
+
+    // If clicking the same odd, remove it (toggle off)
+    if (existingPick && existingPick.odd.id === pick.odd.id) {
+      setSelectedPicks(selectedPicks.filter(p => p.game.event_id !== pick.game.event_id))
+      return
+    }
+
+    // If clicking different odd in same game, replace it
+    if (existingPick) {
+      setSelectedPicks(selectedPicks.map(p =>
+        p.game.event_id === pick.game.event_id ? pick : p
+      ))
+      return
+    }
+
+    // Check if already have 4 picks from different games
     if (selectedPicks.length >= 4) {
       return
     }
 
-    // Check if already selected from this game
-    if (selectedPicks.some(p => p.game.event_id === pick.game.event_id)) {
-      return
-    }
-
+    // Add new pick
     setSelectedPicks([...selectedPicks, pick])
   }
 
@@ -156,38 +169,7 @@ export default function HomePage() {
         </div>
 
         {/* Sport Filter */}
-        <div className="flex space-x-2 mb-6 overflow-x-auto">
-          <button
-            onClick={() => setSportFilter('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
-              sportFilter === 'all'
-                ? 'bg-purple-600 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            All Sports
-          </button>
-          <button
-            onClick={() => setSportFilter('Ice Hockey')}
-            className={`px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
-              sportFilter === 'Ice Hockey'
-                ? 'bg-purple-600 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            🏒 Ice Hockey
-          </button>
-          <button
-            onClick={() => setSportFilter('Football')}
-            className={`px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
-              sportFilter === 'Football'
-                ? 'bg-purple-600 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-            }`}
-          >
-            ⚽ Football
-          </button>
-        </div>
+        <SportFilter selected={sportFilter} onChange={setSportFilter} />
 
         {/* Loading State */}
         {loading && (
@@ -210,22 +192,26 @@ export default function HomePage() {
 
         {/* Games Grid */}
         {!loading && filteredGames.length > 0 && (
-          <div className="space-y-4">
-            {filteredGames.map(game => (
-              <GameCard
-                key={game.id}
-                game={game}
-                odds={odds[game.id] || []}
-                onSelectPick={handleSelectPick}
-                selectedEventIds={selectedEventIds}
-              />
-            ))}
+          <div className="space-y-6 lg:pr-[26rem]">
+            {filteredGames.map(game => {
+              const selectedPick = selectedPicks.find(p => p.game.event_id === game.event_id)
+              return (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  odds={odds[game.id] || []}
+                  onSelectPick={handleSelectPick}
+                  selectedEventIds={selectedEventIds}
+                  selectedOddId={selectedPick?.odd.id || null}
+                />
+              )
+            })}
           </div>
         )}
       </div>
 
-      {/* Parlay Builder (Sticky Bottom) */}
-      <ParlayBuilder
+      {/* Ticket Bar (Mobile Bottom + Desktop Sidebar) */}
+      <TicketBar
         picks={selectedPicks}
         onRemovePick={handleRemovePick}
         onClearAll={handleClearAll}

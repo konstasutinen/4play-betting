@@ -1,2 +1,2 @@
-supabase==2.3.4
+supabase>=2.8.0
 python-dotenv==1.0.0

@@ -3,12 +3,20 @@
 Runs morning pipeline to load today's games and odds into Supabase database
 """
 
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
 import json
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 from supabase import create_client, Client
+
+# Load environment variables
+load_dotenv()
 
 # Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -30,10 +38,13 @@ def run_phase1_scraper():
     """Run Phase 1: API Scraper to get odds"""
     print("🚀 Running Phase 1: API Scraper...")
     result = subprocess.run(
-        ["npx", "tsx", "src/api-scraper.ts"],
+        ["npx.cmd", "tsx", "src/api-scraper.ts"],
         cwd=str(ODDS_DIR),
         capture_output=True,
-        text=True
+        text=True,
+        shell=True,
+        encoding='utf-8',
+        errors='ignore'
     )
 
     if result.returncode != 0:
@@ -51,7 +62,10 @@ def run_phase2_url_matcher():
         ["node", "match-games-to-urls.js"],
         cwd=str(FLASH_URLS_DIR),
         capture_output=True,
-        text=True
+        text=True,
+        shell=True,
+        encoding='utf-8',
+        errors='ignore'
     )
 
     if result.returncode != 0:
@@ -160,15 +174,19 @@ def match_flashscore_url(match_name: str, matched_games: list) -> str | None:
 
 def upload_to_supabase(events: dict, matched_games: list):
     """Upload games and odds to Supabase"""
+    import time
+
     print("\n📤 Uploading to Supabase...")
 
-    # Clear today's games first
+    # Clear today's games first (this will cascade delete odds due to foreign key)
     today_str = datetime.now().date().strftime("%Y-%m-%d")
     supabase.table('games').delete().eq('date', today_str).execute()
     print("   Cleared existing games for today")
 
     games_uploaded = 0
+    games_skipped = 0
     odds_uploaded = 0
+    BATCH_SIZE = 100  # Insert odds in batches
 
     for event_key, event in events.items():
         # Check if game is available
@@ -177,7 +195,13 @@ def upload_to_supabase(events: dict, matched_games: list):
         # Find Flashscore URL
         flashscore_url = match_flashscore_url(event['match'], matched_games)
 
-        # Insert game
+        # Skip games without Flashscore URL
+        if not flashscore_url:
+            games_skipped += 1
+            print(f"   ⏭️  Skipped (no URL) - {event['sport']}: {event['match']}")
+            continue
+
+        # Insert game with retry logic
         game_data = {
             'event_id': event['event_id'],
             'date': event['date'],
@@ -189,11 +213,16 @@ def upload_to_supabase(events: dict, matched_games: list):
             'is_available': is_available
         }
 
-        game_response = supabase.table('games').insert(game_data).execute()
-        game_id = game_response.data[0]['id']
-        games_uploaded += 1
+        try:
+            game_response = supabase.table('games').insert(game_data).execute()
+            game_id = game_response.data[0]['id']
+            games_uploaded += 1
+        except Exception as e:
+            print(f"   ❌ Failed to upload game: {event['match']} - {str(e)}")
+            continue
 
-        # Insert all odds for this game
+        # Prepare odds data in batches
+        odds_data = []
         for bet in event['odds']:
             odd_data = {
                 'game_id': game_id,
@@ -202,16 +231,33 @@ def upload_to_supabase(events: dict, matched_games: list):
                 'option': bet['option'],
                 'odd': float(bet['odd'])
             }
+            odds_data.append(odd_data)
 
-            supabase.table('odds').insert(odd_data).execute()
-            odds_uploaded += 1
+        # Insert odds in batches
+        for i in range(0, len(odds_data), BATCH_SIZE):
+            batch = odds_data[i:i + BATCH_SIZE]
+            retry_count = 0
+            max_retries = 3
+
+            while retry_count < max_retries:
+                try:
+                    supabase.table('odds').insert(batch).execute()
+                    odds_uploaded += len(batch)
+                    break
+                except Exception as e:
+                    retry_count += 1
+                    if retry_count >= max_retries:
+                        print(f"   ❌ Failed to upload odds batch for {event['match']} after {max_retries} retries")
+                    else:
+                        print(f"   ⚠️  Retry {retry_count}/{max_retries} for {event['match']}")
+                        time.sleep(2)  # Wait 2 seconds before retrying
 
         status = "🔒 Locked" if not is_available else "✅ Available"
-        url_status = "🔗 With URL" if flashscore_url else "⚠️  No URL"
-        print(f"   {status} {url_status} - {event['sport']}: {event['match']} ({len(event['odds'])} odds)")
+        print(f"   {status} 🔗 - {event['sport']}: {event['match']} ({len(event['odds'])} odds)")
 
     print(f"\n✅ Upload complete!")
-    print(f"   Games: {games_uploaded}")
+    print(f"   Games uploaded: {games_uploaded}")
+    print(f"   Games skipped (no URL): {games_skipped}")
     print(f"   Odds: {odds_uploaded}")
 
 
