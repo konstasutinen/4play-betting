@@ -51,9 +51,9 @@ export default function GameCard({ game, odds, onSelectPick, selectedEventIds, s
   }
 
   const getSportAccent = (sport: string) => {
-    if (sport === 'Ice Hockey') return 'from-cyan-500/20 to-blue-500/20 border-cyan-500/30'
-    if (sport === 'Football') return 'from-emerald-500/20 to-green-500/20 border-emerald-500/30'
-    return 'from-purple-500/20 to-pink-500/20 border-purple-500/30'
+    if (sport === 'Ice Hockey') return 'from-cyan-500/40 to-blue-500/40 border-cyan-500/50'
+    if (sport === 'Football') return 'from-emerald-500/40 to-green-500/40 border-emerald-500/50'
+    return 'from-purple-500/40 to-pink-500/40 border-purple-500/50'
   }
 
   return (
@@ -61,18 +61,18 @@ export default function GameCard({ game, odds, onSelectPick, selectedEventIds, s
       className={`
         bg-gradient-to-br ${getSportAccent(game.sport)}
         backdrop-blur-sm rounded-2xl border-2 overflow-hidden
-        shadow-lg transition-all duration-200
-        ${isGameSelected ? 'border-purple-500 shadow-purple-500/30' : 'border-slate-700/50 hover:border-slate-600'}
+        shadow-xl transition-all duration-200
+        ${isGameSelected ? 'border-purple-500 shadow-purple-500/40' : 'border-slate-600 hover:border-slate-500'}
       `}
     >
-      <div className="p-6 bg-slate-900/40">
+      <div className="p-6 bg-slate-900/85">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             {/* League badge */}
             <div className="flex items-center gap-2 mb-3">
               <span className="text-2xl">{getSportIcon(game.sport)}</span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 bg-slate-800/60 px-3 py-1 rounded-full">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300 bg-slate-800/90 px-3 py-1 rounded-full border border-slate-700">
                 {game.league}
               </span>
             </div>
@@ -83,7 +83,7 @@ export default function GameCard({ game, odds, onSelectPick, selectedEventIds, s
             </h3>
 
             {/* Date & Time */}
-            <div className="flex items-center gap-2 text-sm text-slate-400">
+            <div className="flex items-center gap-2 text-sm text-slate-300">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -109,7 +109,7 @@ export default function GameCard({ game, odds, onSelectPick, selectedEventIds, s
         {/* Match Odds (1X2 or Full Time) */}
         {matchOdds.length > 0 && (
           <div className="space-y-3">
-            <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide">
+            <p className="text-xs text-slate-300 font-semibold uppercase tracking-wide">
               {game.sport === 'Football' ? 'Full Time Result' : 'Match Odds'}
             </p>
             <div className="grid grid-cols-3 gap-3">
@@ -140,10 +140,10 @@ export default function GameCard({ game, odds, onSelectPick, selectedEventIds, s
 
       {/* Expanded Markets */}
       {expanded && (
-        <div className="border-t border-slate-700/50 p-6 space-y-6 bg-slate-900/60">
+        <div className="border-t border-slate-700/70 p-6 space-y-6 bg-slate-900/90">
           {Object.entries(groupedMarkets).map(([marketName, marketOdds]) => (
             <div key={marketName}>
-              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-3">
+              <p className="text-xs text-slate-300 font-semibold uppercase tracking-wide mb-3">
                 {marketName}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
