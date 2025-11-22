@@ -12,6 +12,7 @@ export default function ProfilePage() {
   const [parlays, setParlays] = useState<ParlayWithPicks[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'won' | 'lost'>('all')
+  const [openTicketIds, setOpenTicketIds] = useState<string[]>([])
   const router = useRouter()
   const supabase = createClient()
 
@@ -34,7 +35,6 @@ export default function ProfilePage() {
 
       setLoading(true)
 
-      // Fetch user profile
       const { data: profileData } = await supabase
         .from('user_profiles')
         .select('*')
@@ -43,7 +43,6 @@ export default function ProfilePage() {
 
       setProfile(profileData)
 
-      // Fetch user's parlays with picks and game details
       const { data: parlaysData } = await supabase
         .from('parlays')
         .select(`
@@ -95,7 +94,7 @@ export default function ProfilePage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-slate-700 p-4">
-            <p className="text-slate-400 text-sm mb-1">Total Parlays</p>
+            <p className="text-slate-400 text-sm mb-1">Total Tickets</p>
             <p className="text-3xl font-bold text-white">{stats.total}</p>
           </div>
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg border border-green-500/30 p-4">
@@ -122,7 +121,7 @@ export default function ProfilePage() {
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
-            All ({stats.total})
+            All Tickets ({stats.total})
           </button>
           <button
             onClick={() => setFilter('pending')}
@@ -160,17 +159,17 @@ export default function ProfilePage() {
         {loading && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-            <p className="text-slate-400 mt-4">Loading parlays...</p>
+            <p className="text-slate-400 mt-4">Loading tickets...</p>
           </div>
         )}
 
-        {/* No Parlays State */}
+        {/* No Tickets State */}
         {!loading && filteredParlays.length === 0 && (
           <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700">
             <p className="text-slate-400 text-lg mb-4">
               {filter === 'all'
-                ? 'No parlays yet. Create your first parlay!'
-                : `No ${filter} parlays.`}
+                ? 'No tickets yet. Create your first ticket!'
+                : `No ${filter} tickets.`}
             </p>
             {filter === 'all' && (
               <button
@@ -183,69 +182,101 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Parlays List */}
+        {/* Tickets List */}
         {!loading && filteredParlays.length > 0 && (
           <div className="space-y-4">
-            {filteredParlays.map((parlay) => (
-              <div
-                key={parlay.id}
-                className={`bg-slate-800/50 backdrop-blur-sm rounded-lg border overflow-hidden ${
-                  parlay.status === 'won' ? 'border-green-500/30' :
-                  parlay.status === 'lost' ? 'border-red-500/30' :
-                  'border-slate-700'
-                }`}
-              >
-                {/* Parlay Header */}
-                <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-                  <div>
-                    <p className="text-white font-semibold">
-                      Parlay from {new Date(parlay.created_at).toLocaleDateString()}
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      Total Odds: <span className="text-purple-400 font-bold">{parlay.total_odds.toFixed(2)}</span>
-                    </p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    parlay.status === 'won' ? 'bg-green-500/20 text-green-400' :
-                    parlay.status === 'lost' ? 'bg-red-500/20 text-red-400' :
-                    'bg-yellow-500/20 text-yellow-400'
-                  }`}>
-                    {parlay.status.toUpperCase()}
-                  </span>
-                </div>
+            {filteredParlays.map((parlay) => {
+              const isOpen = openTicketIds.includes(parlay.id)
+              const toggleOpen = () => {
+                setOpenTicketIds((prev) =>
+                  prev.includes(parlay.id) ? prev.filter((id) => id !== parlay.id) : [...prev, parlay.id]
+                )
+              }
 
-                {/* Picks */}
-                <div className="p-4 space-y-2">
-                  {parlay.parlay_picks.map((pick, index) => (
-                    <div
-                      key={pick.id}
-                      className="bg-slate-900/30 rounded-lg p-3 flex items-center justify-between"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-slate-400 mb-1">
-                          Pick {index + 1} • {pick.games.match}
-                        </p>
-                        <p className="text-sm text-white font-medium">
-                          {pick.market}: {pick.option}
-                        </p>
+              return (
+                <div
+                  key={parlay.id}
+                  className={`bg-slate-800/50 backdrop-blur-sm rounded-lg border overflow-hidden ${
+                    parlay.status === 'won' ? 'border-green-500/30' :
+                    parlay.status === 'lost' ? 'border-red-500/30' :
+                    'border-slate-700'
+                  }`}
+                >
+                  {/* Ticket Header */}
+                  <button
+                    onClick={toggleOpen}
+                    className="w-full text-left p-4 border-b border-slate-700 flex items-center justify-between hover:bg-slate-700/30 transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-slate-900/70 border border-slate-700">
+                        <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 9.75l15-6v16.5l-15-6v-4.5z" />
+                        </svg>
                       </div>
-                      <div className="flex items-center space-x-3 ml-3">
-                        <span className="text-sm font-bold text-purple-400">
-                          {pick.odd.toFixed(2)}
-                        </span>
-                        {pick.result && pick.result !== 'pending' && (
-                          <span className={`text-xs font-semibold ${
-                            pick.result === 'won' ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {pick.result === 'won' ? '✓' : '✗'}
-                          </span>
-                        )}
+                      <div>
+                        <p className="text-white font-semibold">
+                          Ticket from {new Date(parlay.created_at).toLocaleDateString()}
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          Total Odds: <span className="text-purple-400 font-bold">{parlay.total_odds.toFixed(2)}</span>
+                        </p>
                       </div>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        parlay.status === 'won' ? 'bg-green-500/20 text-green-400' :
+                        parlay.status === 'lost' ? 'bg-red-500/20 text-red-400' :
+                        'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                        {parlay.status.toUpperCase()}
+                      </span>
+                      <svg
+                        className={`w-5 h-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.5}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {/* Picks */}
+                  {isOpen && (
+                    <div className="p-4 space-y-2">
+                      {parlay.parlay_picks.map((pick, index) => (
+                        <div
+                          key={pick.id}
+                          className="bg-slate-900/30 rounded-lg p-3 flex items-center justify-between"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-slate-400 mb-1">
+                              Pick {index + 1} • {pick.games.match}
+                            </p>
+                            <p className="text-sm text-white font-medium">
+                              {pick.market}: {pick.option}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-3 ml-3">
+                            <span className="text-sm font-bold text-purple-400">
+                              {pick.odd.toFixed(2)}
+                            </span>
+                            {pick.result && pick.result !== 'pending' && (
+                              <span className={`text-xs font-semibold ${
+                                pick.result === 'won' ? 'text-green-400' : 'text-red-400'
+                              }`}>
+                                {pick.result === 'won' ? '✓' : '✕'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
