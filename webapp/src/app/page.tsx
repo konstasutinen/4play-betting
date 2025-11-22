@@ -1,12 +1,24 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Game, Odd, SelectedPick } from '@/types/database.types'
 import GameCard from '@/components/GameCard'
 import TicketBar from '@/components/TicketBar'
 import SportFilter from '@/components/SportFilter'
+import GameMarketsModal from '@/components/GameMarketsModal'
 import { useRouter } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
+
+type Category = 'popular' | 'main' | 'goals' | 'handicaps' | 'players' | 'other'
+
+type Market = {
+  id: string
+  name: string
+  category: Category
+  outcomes: { id: string; label: string; odds: number }[]
+  pinned?: boolean
+}
 
 export default function HomePage() {
   const [games, setGames] = useState<Game[]>([])
@@ -14,9 +26,56 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
   const [selectedPicks, setSelectedPicks] = useState<SelectedPick[]>([])
   const [sportFilter, setSportFilter] = useState<'all' | 'Ice Hockey' | 'Football'>('all')
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [isMarketsOpen, setIsMarketsOpen] = useState(false)
+  const [marketsForGame, setMarketsForGame] = useState<Market[]>([])
+  const [marketsGame, setMarketsGame] = useState<Game | null>(null)
+  const [pinnedByGame, setPinnedByGame] = useState<Record<string, string[]>>({})
   const router = useRouter()
   const supabase = createClient()
+
+  // Basic heuristic to bucket market names into categories for tab filtering
+  const getCategoryForMarket = (marketName: string): Category => {
+    const name = marketName.toLowerCase()
+    if (name.includes('handicap') || name.includes('spread') || name.includes('line')) return 'handicaps'
+    if (name.includes('goal') || name.includes('over') || name.includes('under') || name.includes('total')) return 'goals'
+    if (name.includes('player') || name.includes('scorer') || name.includes('assist')) return 'players'
+    if (name.includes('full time') || name.includes('match') || name.includes('winner') || name.includes('1x2')) return 'main'
+    return 'other'
+  }
+
+  const buildMarketsForGame = (game: Game): Market[] => {
+    const gameOdds = odds[game.id] || []
+    const grouped: Record<string, Odd[]> = {}
+
+    gameOdds.forEach((odd) => {
+      if (!grouped[odd.market]) {
+        grouped[odd.market] = []
+      }
+      grouped[odd.market].push(odd)
+    })
+
+    const pinned = new Set(pinnedByGame[game.id] || [])
+
+    return Object.entries(grouped).map(([marketName, groupOdds]) => {
+      const marketId = `${game.id}-${marketName}`
+      return {
+        id: marketId,
+        name: marketName,
+        category: getCategoryForMarket(marketName),
+        outcomes: groupOdds.map((o) => ({ id: o.id, label: o.option, odds: o.odd })),
+        pinned: pinned.has(marketId)
+      }
+    })
+  }
+
+  // Keep modal markets fresh if odds or pinned state change for the open game
+  useEffect(() => {
+    if (isMarketsOpen && marketsGame) {
+      setMarketsForGame(buildMarketsForGame(marketsGame))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [odds, pinnedByGame])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -60,9 +119,6 @@ export default function HomePage() {
         const RANGE_SIZE = 1000
         let from = 0
         let hasMore = true
-
-        // Get today's date for filtering
-        const today = new Date().toISOString().split('T')[0]
 
         while (hasMore) {
           const { data: oddsData, error: oddsError } = await supabase
@@ -144,6 +200,44 @@ export default function HomePage() {
     setSelectedPicks([])
   }
 
+  const handleOpenMarkets = (game: Game) => {
+    setMarketsGame(game)
+    setMarketsForGame(buildMarketsForGame(game))
+    setIsMarketsOpen(true)
+  }
+
+  const handleCloseMarkets = () => {
+    setIsMarketsOpen(false)
+    setMarketsGame(null)
+    setMarketsForGame([])
+  }
+
+  const handleTogglePin = (marketId: string) => {
+    if (!marketsGame) return
+    const gameId = marketsGame.id
+    setPinnedByGame((prev) => {
+      const next = new Set(prev[gameId] || [])
+      if (next.has(marketId)) {
+        next.delete(marketId)
+      } else {
+        next.add(marketId)
+      }
+      return { ...prev, [gameId]: Array.from(next) }
+    })
+    setMarketsForGame((prev) =>
+      prev.map((m) => (m.id === marketId ? { ...m, pinned: !m.pinned } : m))
+    )
+  }
+
+  const handleSelectOutcome = (_marketId: string, outcomeId: string) => {
+    if (!marketsGame) return
+    const gameOdds = odds[marketsGame.id] || []
+    const selectedOdd = gameOdds.find((o) => o.id === outcomeId)
+    if (selectedOdd) {
+      handleSelectPick({ game: marketsGame, odd: selectedOdd })
+    }
+  }
+
   const selectedEventIds = selectedPicks.map(p => p.game.event_id)
 
   // Filter games by sport and also hide games that have already started
@@ -153,6 +247,26 @@ export default function HomePage() {
       const gameDateTime = new Date(`${g.date}T${g.time}`)
       return gameDateTime > now
     })
+
+  const modalMatchInfo = useMemo(() => {
+    if (!marketsGame) return undefined
+    const parts = marketsGame.match.split('-').map(p => p.trim())
+    const homeTeam = parts[0] || marketsGame.match
+    const awayTeam = parts[1] || ''
+    const startTime = new Date(`${marketsGame.date}T${marketsGame.time}`).toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return {
+      homeTeam,
+      awayTeam,
+      startTime,
+      status: marketsGame.is_available ? 'Not started' : 'Starting soon'
+    }
+  }, [marketsGame])
 
   if (!user) {
     return null
@@ -203,12 +317,22 @@ export default function HomePage() {
                   onSelectPick={handleSelectPick}
                   selectedEventIds={selectedEventIds}
                   selectedOddId={selectedPick?.odd.id || null}
+                  onOpenMarkets={handleOpenMarkets}
                 />
               )
             })}
           </div>
         )}
       </div>
+
+      <GameMarketsModal
+        markets={marketsForGame}
+        isOpen={isMarketsOpen}
+        onClose={handleCloseMarkets}
+        onTogglePin={handleTogglePin}
+        onSelectOutcome={handleSelectOutcome}
+        matchInfo={modalMatchInfo}
+      />
 
       {/* Ticket Bar (Mobile Bottom + Desktop Sidebar) */}
       <TicketBar
@@ -219,4 +343,3 @@ export default function HomePage() {
     </div>
   )
 }
-

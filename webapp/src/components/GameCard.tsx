@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import type { Game, Odd, SelectedPick } from '@/types/database.types'
 import OutcomeButton from './OutcomeButton'
 
@@ -10,20 +9,26 @@ interface GameCardProps {
   onSelectPick: (pick: SelectedPick) => void
   selectedEventIds: string[]
   selectedOddId?: string | null
+  onOpenMarkets?: (game: Game) => void
 }
 
-export default function GameCard({ game, odds, onSelectPick, selectedEventIds, selectedOddId }: GameCardProps) {
-  const [expanded, setExpanded] = useState(false)
-
+export default function GameCard({
+  game,
+  odds,
+  onSelectPick,
+  selectedEventIds,
+  selectedOddId,
+  onOpenMarkets
+}: GameCardProps) {
   // Get Match Odds - Regular Time (1X2) market
   // Football uses "Full Time", Ice Hockey uses "Match Odds - Regular Time"
-  const matchOdds = odds.filter(odd =>
-    odd.market === 'Match Odds - Regular Time' || odd.market === 'Full Time'
+  const matchOdds = odds.filter(
+    (odd) => odd.market === 'Match Odds - Regular Time' || odd.market === 'Full Time'
   )
 
   // Get all other markets
-  const otherMarkets = odds.filter(odd =>
-    odd.market !== 'Match Odds - Regular Time' && odd.market !== 'Full Time'
+  const otherMarkets = odds.filter(
+    (odd) => odd.market !== 'Match Odds - Regular Time' && odd.market !== 'Full Time'
   )
 
   // Group other markets by market name
@@ -45,9 +50,9 @@ export default function GameCard({ game, odds, onSelectPick, selectedEventIds, s
   }
 
   const getSportIcon = (sport: string) => {
-    if (sport === 'Ice Hockey') return '🏒'
-    if (sport === 'Football') return '⚽'
-    return '🎯'
+    if (sport === 'Ice Hockey') return 'HKY'
+    if (sport === 'Football') return 'FTB'
+    return 'SPT'
   }
 
   const getSportAccent = (sport: string) => {
@@ -71,7 +76,9 @@ export default function GameCard({ game, odds, onSelectPick, selectedEventIds, s
           <div className="flex-1">
             {/* League badge */}
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-2xl">{getSportIcon(game.sport)}</span>
+              <span className="text-sm font-semibold px-2 py-1 bg-slate-800/90 rounded border border-slate-700 text-slate-200">
+                {getSportIcon(game.sport)}
+              </span>
               <span className="text-xs font-semibold uppercase tracking-wider text-slate-300 bg-slate-800/90 px-3 py-1 rounded-full border border-slate-700">
                 {game.league}
               </span>
@@ -126,55 +133,17 @@ export default function GameCard({ game, odds, onSelectPick, selectedEventIds, s
           </div>
         )}
 
-        {/* Expand button for other markets */}
+        {/* Open modal for other markets */}
         {otherMarketCount > 0 && (
           <button
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => onOpenMarkets?.(game)}
             className="w-full mt-4 py-2.5 text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors flex items-center justify-center gap-2"
           >
-            <span>{expanded ? '▲' : '▼'}</span>
+            <span>+</span>
             <span>{otherMarketCount} more markets</span>
           </button>
         )}
       </div>
-
-      {/* Expanded Markets */}
-      {expanded && (
-        <div className="border-t border-slate-700/70 p-6 space-y-6 bg-slate-900/90">
-          {Object.entries(groupedMarkets).map(([marketName, marketOdds]) => (
-            <div key={marketName}>
-              <p className="text-xs text-slate-300 font-semibold uppercase tracking-wide mb-3">
-                {marketName}
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {marketOdds.map((odd) => (
-                  <button
-                    key={odd.id}
-                    onClick={() => handleOddClick(odd)}
-                    disabled={!game.is_available || (isGameSelected && selectedOddId !== odd.id)}
-                    className={`
-                      py-3 px-3 rounded-xl text-center transition-all duration-200
-                      ${selectedOddId === odd.id
-                        ? 'bg-gradient-to-br from-purple-600 to-pink-600 shadow-lg shadow-purple-500/40'
-                        : !game.is_available || (isGameSelected && selectedOddId !== odd.id)
-                        ? 'bg-slate-800/30 cursor-not-allowed opacity-50'
-                        : 'bg-slate-800/60 hover:bg-slate-700 hover:scale-105'
-                      }
-                    `}
-                  >
-                    <div className={`text-xs mb-1 truncate ${selectedOddId === odd.id ? 'text-white' : 'text-slate-300'}`}>
-                      {odd.option}
-                    </div>
-                    <div className={`text-lg font-bold ${selectedOddId === odd.id ? 'text-white' : 'text-purple-400'}`}>
-                      {odd.odd.toFixed(2)}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
