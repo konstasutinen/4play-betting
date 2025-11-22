@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { LeaderboardEntry } from '@/types/database.types'
+import type { User } from '@supabase/supabase-js'
 
 export default function LeaderboardPage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<'wins' | 'win_rate'>('wins')

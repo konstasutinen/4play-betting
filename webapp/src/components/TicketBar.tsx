@@ -80,9 +80,10 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
         router.push('/profile')
         router.refresh()
       }, 2000)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Submission error:', err)
-      setError(err.message || 'Failed to submit ticket')
+      const message = err instanceof Error ? err.message : 'Failed to submit ticket'
+      setError(message)
       setSubmitting(false)
     }
   }

@@ -79,9 +79,10 @@ export default function ParlayBuilder({ picks, onRemovePick, onClearAll }: Parla
         router.push('/profile')
         router.refresh()
       }, 2000)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Submission error:', err)
-      setError(err.message || 'Failed to submit ticket')
+      const message = err instanceof Error ? err.message : 'Failed to submit ticket'
+      setError(message)
       setSubmitting(false)
     }
   }
@@ -149,7 +150,7 @@ export default function ParlayBuilder({ picks, onRemovePick, onClearAll }: Parla
         )}
 
         <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
-          {picks.map((pick, index) => (
+          {picks.map((pick) => (
             <div
               key={pick.game.event_id}
               className="flex items-center justify-between bg-slate-800/50 rounded-lg p-3"

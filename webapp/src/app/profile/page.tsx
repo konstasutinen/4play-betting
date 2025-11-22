@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { ParlayWithPicks, UserProfile } from '@/types/database.types'
+import type { User } from '@supabase/supabase-js'
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [parlays, setParlays] = useState<ParlayWithPicks[]>([])
   const [loading, setLoading] = useState(true)
