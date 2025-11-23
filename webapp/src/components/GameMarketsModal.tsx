@@ -52,14 +52,14 @@ export default function GameMarketsModal({
   matchInfo
 }: GameMarketsModalProps) {
   const [activeTab, setActiveTab] = useState<Category>('popular')
-  // Track which market accordion is open per tab
-  const [openMarketIdByTab, setOpenMarketIdByTab] = useState<Record<Category, string | null>>({
-    popular: null,
-    main: null,
-    goals: null,
-    handicaps: null,
-    players: null,
-    other: null
+  // Track which market accordions are open per tab (allow multiple open)
+  const [openMarketIdsByTab, setOpenMarketIdsByTab] = useState<Record<Category, string[]>>({
+    popular: [],
+    main: [],
+    goals: [],
+    handicaps: [],
+    players: [],
+    other: []
   })
 
   const marketsByTab = useMemo(() => {
@@ -94,20 +94,22 @@ export default function GameMarketsModal({
   if (!isOpen) return null
 
   const activeMarkets = marketsByTab[activeTab] || []
-  const requestedOpenId = openMarketIdByTab[activeTab]
-  const openMarketId = activeMarkets.some((m) => m.id === requestedOpenId)
-    ? requestedOpenId
-    : activeMarkets[0]?.id ?? null
+  const openIdsForTab = openMarketIdsByTab[activeTab] || []
 
   const handleTabChange = (tab: Category) => {
     setActiveTab(tab)
   }
 
   const handleToggleAccordion = (marketId: string) => {
-    setOpenMarketIdByTab((prev) => ({
-      ...prev,
-      [activeTab]: prev[activeTab] === marketId ? null : marketId
-    }))
+    setOpenMarketIdsByTab((prev) => {
+      const current = new Set(prev[activeTab] || [])
+      if (current.has(marketId)) {
+        current.delete(marketId)
+      } else {
+        current.add(marketId)
+      }
+      return { ...prev, [activeTab]: Array.from(current) }
+    })
   }
 
   const renderPinIcon = (isPinned: boolean) => (
@@ -140,25 +142,25 @@ export default function GameMarketsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex sm:items-center sm:justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full h-full sm:h-auto sm:max-h-[80vh] sm:max-w-3xl bg-white shadow-2xl rounded-none sm:rounded-2xl flex flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b px-4 py-3 bg-white">
+      <div className="relative w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-4xl bg-slate-900 text-white shadow-2xl rounded-none sm:rounded-2xl flex flex-col border border-slate-800">
+        <header className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 to-slate-850">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+              className="p-2 rounded-full bg-slate-800/70 hover:bg-slate-700 transition-colors border border-slate-700"
               aria-label="Close"
             >
-              <svg className="w-5 h-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+              <svg className="w-5 h-5 text-slate-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
             <div className="flex flex-col">
-              <span className="text-sm font-semibold text-slate-900">
+              <span className="text-sm font-semibold text-white">
                 {matchInfo ? `${matchInfo.homeTeam} vs ${matchInfo.awayTeam}` : 'Match details'}
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-slate-400">
                 {matchInfo
                   ? `${matchInfo.startTime}${matchInfo.status ? ` • ${matchInfo.status}` : ''}`
                   : 'Kickoff time'}
@@ -167,16 +169,16 @@ export default function GameMarketsModal({
           </div>
         </header>
 
-        <div className="border-b bg-white">
-          <div className="flex gap-4 overflow-x-auto px-4 pb-2 pt-1 text-sm">
+        <div className="border-b border-slate-800 bg-slate-900">
+          <div className="flex gap-4 overflow-x-auto px-5 pb-2 pt-2 text-sm">
             {CATEGORY_TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => handleTabChange(tab.key)}
-                className={`pb-2 whitespace-nowrap border-b-2 ${
+                className={`pb-2 whitespace-nowrap border-b-2 transition-colors ${
                   activeTab === tab.key
-                    ? 'border-slate-900 text-slate-900 font-semibold'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                    ? 'border-purple-500 text-white font-semibold'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {tab.label}
@@ -185,20 +187,23 @@ export default function GameMarketsModal({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6 bg-white">
+        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-6 bg-gradient-to-b from-slate-900 to-slate-950">
           {activeMarkets.length === 0 && (
-            <div className="text-center text-slate-500 text-sm py-8">No markets available for this category.</div>
+            <div className="text-center text-slate-400 text-sm py-8">No markets available for this category.</div>
           )}
 
-          {activeMarkets.map((market) => {
-            const isOpen = openMarketId === market.id
+          {activeMarkets.map((market, index) => {
+            const isOpen = openIdsForTab.includes(market.id) || (openIdsForTab.length === 0 && index < 2)
 
             return (
-              <div key={market.id} className="bg-gray-50 rounded-xl mb-3 shadow-sm border border-slate-200 overflow-hidden">
+              <div
+                key={market.id}
+                className="bg-slate-800/70 rounded-xl mb-3 shadow-md border border-slate-700 overflow-hidden"
+              >
                 <div
                   role="button"
                   tabIndex={0}
-                  className="w-full flex items-center justify-between px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  className="w-full flex items-center justify-between px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
                   onClick={() => handleToggleAccordion(market.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -207,7 +212,7 @@ export default function GameMarketsModal({
                     }
                   }}
                 >
-                  <span className="text-sm font-semibold text-slate-900">{market.name}</span>
+                  <span className="text-sm font-semibold text-white">{market.name}</span>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
@@ -215,7 +220,7 @@ export default function GameMarketsModal({
                         e.stopPropagation()
                         onTogglePin(market.id)
                       }}
-                      className="p-1 rounded-full hover:bg-white"
+                      className="p-1 rounded-full hover:bg-slate-700"
                       aria-label="Pin market"
                     >
                       {renderPinIcon(Boolean(market.pinned))}
@@ -223,7 +228,7 @@ export default function GameMarketsModal({
                     <button
                       type="button"
                       onClick={(e) => e.stopPropagation()}
-                      className="p-1 rounded-full hover:bg-white"
+                      className="p-1 rounded-full hover:bg-slate-700"
                       aria-label="Info"
                     >
                       <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -240,10 +245,10 @@ export default function GameMarketsModal({
                       <button
                         key={outcome.id}
                         onClick={() => onSelectOutcome(market.id, outcome.id)}
-                        className="flex-1 min-w-[30%] rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-center bg-white hover:border-slate-300 hover:shadow-sm transition"
+                        className="flex-1 min-w-[30%] rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium text-center bg-slate-900/60 hover:border-purple-500/70 hover:shadow-lg hover:shadow-purple-500/10 transition"
                       >
-                        <div className="text-slate-800">{outcome.label}</div>
-                        <div className="text-slate-500 text-xs font-semibold mt-0.5">{outcome.odds.toFixed(2)}</div>
+                        <div className="text-slate-100">{outcome.label}</div>
+                        <div className="text-purple-300 text-xs font-semibold mt-0.5">{outcome.odds.toFixed(2)}</div>
                       </button>
                     ))}
                   </div>
