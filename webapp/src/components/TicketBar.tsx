@@ -143,7 +143,7 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
   return (
     <>
       {/* Mobile View */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-900/98 backdrop-blur-md border-t border-purple-500/30 z-40 shadow-2xl">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-900/98 backdrop-blur-md border-t border-purple-500/30 z-40 shadow-2xl pb-[env(safe-area-inset-bottom)]">
         {/* Compact bar */}
         {!expanded && (
           <button
@@ -181,7 +181,7 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
 
         {/* Expanded view */}
         {expanded && (
-          <div className="max-h-96 overflow-hidden">
+          <div className="max-h-[calc(70vh)] overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -228,7 +228,7 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
               {picks.map((pick) => (
                 <div
                   key={pick.game.event_id}
-                  className="flex items-center justify-between bg-slate-800/50 rounded-xl p-3 group"
+                  className="flex items-center justify-between bg-slate-800/50 rounded-xl p-3"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-slate-400 truncate">{pick.game.match}</p>
@@ -240,9 +240,10 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
                     <span className="text-lg font-bold text-purple-400">{pick.odd.odd.toFixed(2)}</span>
                     <button
                       onClick={() => onRemovePick(pick.game.event_id)}
-                      className="text-slate-500 hover:text-red-400 transition opacity-0 group-hover:opacity-100"
+                      className="p-2 rounded-full bg-slate-900/60 border border-slate-700 hover:border-red-400 hover:text-red-400 text-slate-300 transition"
+                      aria-label="Remove pick"
                     >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
@@ -252,7 +253,7 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
             </div>
 
             {/* Footer with score and submit */}
-            <div className="p-4 border-t border-slate-700/50 space-y-3">
+            <div className="p-4 border-t border-slate-700/50 space-y-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="flex items-center justify-between">
                 <span className="text-slate-400 text-sm">Total Score</span>
                 <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
