@@ -20,18 +20,36 @@ export default function GameCard({
   selectedOddId,
   onOpenMarkets
 }: GameCardProps) {
-  // Get Match Odds - Regular Time (1X2) market
-  // Football uses "Full Time", Ice Hockey uses "Match Odds - Regular Time"
+  // Match odds - regular time or full time
   const matchOdds = odds.filter(
     (odd) => odd.market === 'Match Odds - Regular Time' || odd.market === 'Full Time'
   )
 
-  // Get all other markets
+  const isCorrectScore = (market: string) => market.toLowerCase().startsWith('correct score')
+  const isTotalGoalsWholeGame = (market: string) => {
+    const lower = market.toLowerCase()
+    return lower.includes('total goals') && !lower.includes('period') && !lower.includes('by') && !lower.includes('0:00')
+  }
+  const isInlineMarket = (market: string) => isCorrectScore(market) || isTotalGoalsWholeGame(market)
+
+  // Inline markets (Correct Score, whole-game totals)
+  const inlineGrouped = odds.reduce((acc, odd) => {
+    if (odd.market === 'Match Odds - Regular Time' || odd.market === 'Full Time') return acc
+    if (!isInlineMarket(odd.market)) return acc
+    if (!acc[odd.market]) acc[odd.market] = []
+    acc[odd.market].push(odd)
+    return acc
+  }, {} as Record<string, Odd[]>)
+  const inlineMarkets = Object.entries(inlineGrouped).map(([name, group]) => ({ name, odds: group }))
+
+  // Other markets (for modal)
   const otherMarkets = odds.filter(
-    (odd) => odd.market !== 'Match Odds - Regular Time' && odd.market !== 'Full Time'
+    (odd) =>
+      odd.market !== 'Match Odds - Regular Time' &&
+      odd.market !== 'Full Time' &&
+      !isInlineMarket(odd.market)
   )
 
-  // Group other markets by market name
   const groupedMarkets = otherMarkets.reduce((acc, odd) => {
     if (!acc[odd.market]) {
       acc[odd.market] = []
@@ -130,6 +148,42 @@ export default function GameCard({
                 />
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Inline key markets (Correct Score, Total Goals) */}
+        {inlineMarkets.length > 0 && (
+          <div className="mt-5 space-y-4">
+            {inlineMarkets.map((market) => (
+              <div key={market.name} className="space-y-2">
+                <p className="text-xs text-slate-300 font-semibold uppercase tracking-wide">
+                  {market.name}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {market.odds.map((odd) => (
+                    <button
+                      key={odd.id}
+                      onClick={() => handleOddClick(odd)}
+                      disabled={!game.is_available || (isGameSelected && selectedOddId !== odd.id)}
+                      className={`py-3 px-3 rounded-xl text-left transition-all duration-200 border ${
+                        selectedOddId === odd.id
+                          ? 'border-purple-500 bg-purple-600/30 shadow-lg shadow-purple-500/40'
+                          : !game.is_available || (isGameSelected && selectedOddId !== odd.id)
+                          ? 'border-slate-700 bg-slate-800/30 cursor-not-allowed opacity-60'
+                          : 'border-slate-700 bg-slate-800/70 hover:border-purple-400 hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className={`text-xs mb-1 truncate ${selectedOddId === odd.id ? 'text-white' : 'text-slate-300'}`}>
+                        {odd.option}
+                      </div>
+                      <div className={`text-lg font-bold ${selectedOddId === odd.id ? 'text-white' : 'text-purple-400'}`}>
+                        {odd.odd.toFixed(2)}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
