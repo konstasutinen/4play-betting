@@ -143,7 +143,7 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
   return (
     <>
       {/* Mobile View */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-900/98 backdrop-blur-md border-t border-purple-500/30 z-40 shadow-2xl pb-[env(safe-area-inset-bottom)]">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#05070A]/98 backdrop-blur-md border-t border-[#1E2430] z-40 pb-[env(safe-area-inset-bottom)] shadow-md">
         {/* Compact bar */}
         {!expanded && (
           <button
@@ -151,15 +151,11 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
             className="w-full p-4 flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
-              <div className="flex gap-1.5">
+              <div className="flex gap-1.5 w-20 h-1.5 rounded-full overflow-hidden bg-[#141820]">
                 {[...Array(4)].map((_, i) => (
                   <div
                     key={i}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      i < picks.length
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500'
-                        : 'bg-slate-700'
-                    }`}
+                    className={`flex-1 transition-all ${i < picks.length ? 'bg-[#0E8BFF]' : 'bg-[#1E2430]'}`}
                   />
                 ))}
               </div>
@@ -169,10 +165,10 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <div className="text-xs text-slate-400">Score</div>
-                <div className="text-lg font-bold text-purple-400">{totalScore.toFixed(2)}</div>
+                <div className="text-xs text-[#A0A8B5]">Score</div>
+                <div className="text-lg font-bold text-[#0E8BFF]">{totalScore.toFixed(2)}</div>
               </div>
-              <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 text-[#0E8BFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
             </div>
@@ -185,15 +181,11 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
             {/* Header */}
             <div className="p-4 border-b border-slate-700/50 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex gap-1.5">
+                <div className="flex gap-1.5 w-24 h-1.5 rounded-full overflow-hidden bg-[#141820]">
                   {[...Array(4)].map((_, i) => (
                     <div
                       key={i}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        i < picks.length
-                          ? 'bg-gradient-to-r from-purple-500 to-pink-500'
-                          : 'bg-slate-700'
-                      }`}
+                      className={`flex-1 transition-all ${i < picks.length ? 'bg-[#0E8BFF]' : 'bg-[#1E2430]'}`}
                     />
                   ))}
                 </div>
@@ -202,7 +194,7 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
               <div className="flex items-center gap-3">
                 <button
                   onClick={onClearAll}
-                  className="text-xs text-slate-400 hover:text-white transition"
+                  className="text-xs text-[#A0A8B5] hover:text-white transition"
                 >
                   Clear All
                 </button>
@@ -228,19 +220,19 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
               {picks.map((pick) => (
                 <div
                   key={pick.game.event_id}
-                  className="flex items-center justify-between bg-slate-800/50 rounded-xl p-3"
+                  className="flex items-center justify-between bg-[#0D1117] rounded-xl p-3 border border-[#1E2430]"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-slate-400 truncate">{pick.game.match}</p>
+                    <p className="text-xs text-[#A0A8B5] truncate">{pick.game.match}</p>
                     <p className="text-sm text-white font-medium mt-0.5">
                       {pick.odd.option}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 ml-3">
-                    <span className="text-lg font-bold text-purple-400">{pick.odd.odd.toFixed(2)}</span>
+                    <span className="text-lg font-bold text-[#0E8BFF]">{pick.odd.odd.toFixed(2)}</span>
                     <button
                       onClick={() => onRemovePick(pick.game.event_id)}
-                      className="p-2 rounded-full bg-slate-900/60 border border-slate-700 hover:border-red-400 hover:text-red-400 text-slate-300 transition"
+                      className="p-2 rounded-full bg-[#0B0F15] border border-[#1E2430] hover:border-red-400 hover:text-red-400 text-slate-300 transition"
                       aria-label="Remove pick"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -253,10 +245,10 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
             </div>
 
             {/* Footer with score and submit */}
-            <div className="p-4 border-t border-slate-700/50 space-y-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="p-4 border-t border-[#1E2430] space-y-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 text-sm">Total Score</span>
-                <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                <span className="text-[#A0A8B5] text-sm">Total Score</span>
+                <span className="text-2xl font-bold text-[#0E8BFF]">
                   {totalScore.toFixed(2)}
                 </span>
               </div>
@@ -266,8 +258,8 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
                 className={`
                   w-full py-4 rounded-xl font-bold text-lg transition-all duration-200
                   ${isComplete && !submitting
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/50 hover:scale-105 animate-pulse-slow'
-                    : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                    ? 'bg-[#0E8BFF] text-white hover:bg-[#2198ff] hover:scale-105'
+                    : 'bg-[#1E2430] text-[#6B7380] cursor-not-allowed'
                   }
                 `}
               >
@@ -279,14 +271,14 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
       </div>
 
       {/* Desktop View: Right sidebar */}
-      <div className="hidden lg:block fixed top-20 right-8 w-96 bg-slate-900/95 backdrop-blur-md border border-purple-500/30 rounded-2xl shadow-2xl z-40">
+      <div className="hidden lg:block fixed top-20 right-8 w-96 bg-[#0B0F15]/95 backdrop-blur-md border border-[#1E2430] rounded-2xl shadow-md z-40">
         {/* Header */}
-        <div className="p-6 border-b border-slate-700/50">
+        <div className="p-6 border-b border-[#1E2430]">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold text-white">Your Ticket</h3>
             <button
               onClick={onClearAll}
-              className="text-xs text-slate-400 hover:text-white transition"
+              className="text-xs text-[#A0A8B5] hover:text-white transition"
             >
               Clear All
             </button>
@@ -296,11 +288,7 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className={`flex-1 h-1.5 rounded-full transition-all ${
-                  i < picks.length
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500'
-                    : 'bg-slate-700'
-                }`}
+                className={`flex-1 h-1.5 rounded-full transition-all ${i < picks.length ? 'bg-[#0E8BFF]' : 'bg-[#1E2430]'}`}
               />
             ))}
           </div>
@@ -317,15 +305,15 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
           {picks.map((pick) => (
             <div
               key={pick.game.event_id}
-              className="flex items-start justify-between bg-slate-800/50 rounded-xl p-4 group hover:bg-slate-800/70 transition"
+              className="flex items-start justify-between bg-[#0D1117] rounded-xl p-4 group hover:border-[#0E8BFF] border border-[#1E2430] transition"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-400 mb-1">{pick.game.match}</p>
+                <p className="text-xs text-[#A0A8B5] mb-1">{pick.game.match}</p>
                 <p className="text-sm text-white font-semibold">{pick.odd.option}</p>
-                <p className="text-xs text-slate-500 mt-1">{pick.odd.market}</p>
+                <p className="text-xs text-[#6B7380] mt-1">{pick.odd.market}</p>
               </div>
               <div className="flex flex-col items-end gap-2 ml-3">
-                <span className="text-xl font-bold text-purple-400">{pick.odd.odd.toFixed(2)}</span>
+                <span className="text-xl font-bold text-[#0E8BFF]">{pick.odd.odd.toFixed(2)}</span>
                 <button
                   onClick={() => onRemovePick(pick.game.event_id)}
                   className="text-slate-500 hover:text-red-400 transition"
@@ -340,10 +328,10 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-slate-700/50 space-y-4">
+        <div className="p-6 border-t border-[#1E2430] space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-slate-400">Total Score</span>
-            <span className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="text-[#A0A8B5]">Total Score</span>
+            <span className="text-3xl font-bold text-[#0E8BFF]">
               {totalScore.toFixed(2)}
             </span>
           </div>
@@ -353,8 +341,8 @@ export default function TicketBar({ picks, onRemovePick, onClearAll }: TicketBar
             className={`
               w-full py-4 rounded-xl font-bold text-lg transition-all duration-200
               ${isComplete && !submitting
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/50 hover:scale-105'
-                : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                ? 'bg-[#0E8BFF] text-white hover:bg-[#2198ff] hover:scale-105'
+                : 'bg-[#1E2430] text-[#6B7380] cursor-not-allowed'
               }
             `}
           >

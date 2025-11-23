@@ -73,31 +73,23 @@ export default function GameCard({
     return 'SPT'
   }
 
-  const getSportAccent = (sport: string) => {
-    if (sport === 'Ice Hockey') return 'from-cyan-500/40 to-blue-500/40 border-cyan-500/50'
-    if (sport === 'Football') return 'from-emerald-500/40 to-green-500/40 border-emerald-500/50'
-    return 'from-purple-500/40 to-pink-500/40 border-purple-500/50'
-  }
-
   return (
     <div
-      className={`
-        bg-gradient-to-br ${getSportAccent(game.sport)}
-        backdrop-blur-sm rounded-2xl border-2 overflow-hidden
-        shadow-xl transition-all duration-200
-        ${isGameSelected ? 'border-purple-500 shadow-purple-500/40' : 'border-slate-600 hover:border-slate-500'}
-      `}
+      className="
+        bg-[#0D1117] rounded-2xl border border-[#1E2430] overflow-hidden
+        transition-all duration-200 hover:border-[#0E8BFF]/60
+      "
     >
-      <div className="p-6 bg-slate-900/85">
+      <div className="p-6 bg-transparent">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             {/* League badge */}
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-sm font-semibold px-2 py-1 bg-slate-800/90 rounded border border-slate-700 text-slate-200">
+              <span className="text-xs font-semibold px-2 py-1 bg-[#141820] rounded-full border border-[#252B35] text-[#A0A8B5]">
                 {getSportIcon(game.sport)}
               </span>
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-300 bg-slate-800/90 px-3 py-1 rounded-full border border-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#A0A8B5] bg-[#141820] px-3 py-1 rounded-full border border-[#252B35]">
                 {game.league}
               </span>
             </div>
@@ -108,7 +100,7 @@ export default function GameCard({
             </h3>
 
             {/* Date & Time */}
-            <div className="flex items-center gap-2 text-sm text-slate-300">
+            <div className="flex items-center gap-2 text-sm text-[#A0A8B5]">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -124,7 +116,7 @@ export default function GameCard({
             </div>
 
             {!game.is_available && (
-              <span className="inline-block mt-3 text-xs bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full font-medium">
+              <span className="inline-block mt-3 text-xs bg-red-500/15 text-red-400 px-3 py-1.5 rounded-full font-medium">
                 Starting soon
               </span>
             )}
@@ -134,7 +126,7 @@ export default function GameCard({
         {/* Match Odds (1X2 or Full Time) */}
         {matchOdds.length > 0 && (
           <div className="space-y-3">
-            <p className="text-xs text-slate-300 font-semibold uppercase tracking-wide">
+            <p className="text-xs text-[#6B7380] font-semibold uppercase tracking-wide">
               {game.sport === 'Football' ? 'Full Time Result' : 'Match Odds'}
             </p>
             <div className="grid grid-cols-3 gap-3">
@@ -156,7 +148,7 @@ export default function GameCard({
           <div className="mt-5 space-y-4">
             {inlineMarkets.map((market) => (
               <div key={market.name} className="space-y-2">
-                <p className="text-xs text-slate-300 font-semibold uppercase tracking-wide">
+                <p className="text-xs text-[#6B7380] font-semibold uppercase tracking-wide">
                   {market.name}
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -167,16 +159,16 @@ export default function GameCard({
                       disabled={!game.is_available || (isGameSelected && selectedOddId !== odd.id)}
                       className={`py-3 px-3 rounded-xl text-left transition-all duration-200 border ${
                         selectedOddId === odd.id
-                          ? 'border-purple-500 bg-purple-600/30 shadow-lg shadow-purple-500/40'
+                          ? 'border-[#0E8BFF] bg-[#0E8BFF]/15'
                           : !game.is_available || (isGameSelected && selectedOddId !== odd.id)
-                          ? 'border-slate-700 bg-slate-800/30 cursor-not-allowed opacity-60'
-                          : 'border-slate-700 bg-slate-800/70 hover:border-purple-400 hover:bg-slate-800'
+                          ? 'border-[#1E2430] bg-[#141820] cursor-not-allowed opacity-60'
+                          : 'border-[#1E2430] bg-[#141820] hover:border-[#0E8BFF]'
                       }`}
                     >
-                      <div className={`text-xs mb-1 truncate ${selectedOddId === odd.id ? 'text-white' : 'text-slate-300'}`}>
+                      <div className={`text-xs mb-1 truncate ${selectedOddId === odd.id ? 'text-white' : 'text-[#A0A8B5]'}`}>
                         {odd.option}
                       </div>
-                      <div className={`text-lg font-bold ${selectedOddId === odd.id ? 'text-white' : 'text-purple-400'}`}>
+                      <div className={`text-lg font-bold ${selectedOddId === odd.id ? 'text-white' : 'text-white'}`}>
                         {odd.odd.toFixed(2)}
                       </div>
                     </button>
@@ -191,7 +183,7 @@ export default function GameCard({
         {otherMarketCount > 0 && (
           <button
             onClick={() => onOpenMarkets?.(game)}
-            className="w-full mt-4 py-2.5 text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors flex items-center justify-center gap-2"
+            className="w-full mt-4 py-2.5 text-xs font-semibold text-[#0E8BFF] hover:text-[#3aa3ff] transition-colors flex items-center justify-center gap-2"
           >
             <span>+</span>
             <span>{otherMarketCount} more markets</span>

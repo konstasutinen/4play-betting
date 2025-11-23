@@ -22,11 +22,11 @@ export default function SportFilter({ selected, onChange }: SportFilterProps) {
             onClick={() => onChange(sport.value)}
             className={`
               flex items-center gap-2 px-5 py-2.5 rounded-full font-medium text-sm
-              whitespace-nowrap snap-start transition-all duration-200
+              whitespace-nowrap snap-start transition-all duration-200 border
               ${
                 isActive
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
-                  : 'bg-slate-800/50 text-slate-300 border border-slate-700 hover:border-purple-500/50 hover:text-white hover:shadow-md'
+                  ? 'bg-[#0E8BFF] text-white border-transparent'
+                  : 'bg-[#141820] text-[#A0A8B5] border-[#252B35] hover:border-[#0E8BFF] hover:text-white'
               }
             `}
           >
