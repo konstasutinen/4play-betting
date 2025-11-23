@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Game, Odd, SelectedPick } from '@/types/database.types'
 import GameCard from '@/components/GameCard'
@@ -9,6 +9,8 @@ import SportFilter from '@/components/SportFilter'
 import GameMarketsModal from '@/components/GameMarketsModal'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
+
+const PAGE_SIZE = 20
 
 type Category = 'popular' | 'main' | 'goals' | 'handicaps' | 'players' | 'other'
 
@@ -24,6 +26,8 @@ export default function HomePage() {
   const [games, setGames] = useState<Game[]>([])
   const [odds, setOdds] = useState<Record<string, Odd[]>>({})
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [selectedPicks, setSelectedPicks] = useState<SelectedPick[]>([])
   const [sportFilter, setSportFilter] = useState<'all' | 'Ice Hockey' | 'Football'>('all')
   const [user, setUser] = useState<User | null>(null)
@@ -31,6 +35,7 @@ export default function HomePage() {
   const [marketsForGame, setMarketsForGame] = useState<Market[]>([])
   const [marketsGame, setMarketsGame] = useState<Game | null>(null)
   const [pinnedByGame, setPinnedByGame] = useState<Record<string, string[]>>({})
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -77,6 +82,61 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [odds, pinnedByGame])
 
+  const fetchPage = useCallback(
+    async (offset: number, existingGames: Game[]) => {
+      const today = new Date().toISOString().split('T')[0]
+
+      const { data: gamesData, error: gamesError } = await supabase
+        .from('games')
+        .select('*')
+        .eq('date', today)
+        .order('time', { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1)
+
+      if (gamesError) {
+        console.error('Error fetching games:', gamesError)
+        setLoading(false)
+        setLoadingMore(false)
+        return
+      }
+
+      const existingIds = new Set(existingGames.map((g) => g.id))
+      const newGames = (gamesData || []).filter((g) => !existingIds.has(g.id))
+
+      setHasMore((gamesData || []).length === PAGE_SIZE)
+
+      if (newGames.length > 0) {
+        const ids = newGames.map((g) => g.id)
+        const { data: oddsData, error: oddsError } = await supabase
+          .from('odds')
+          .select('*')
+          .in('game_id', ids)
+
+        if (oddsError) {
+          console.error('Error fetching odds:', oddsError)
+        }
+
+        setOdds((prev) => {
+          const next = { ...prev }
+          ;(oddsData || []).forEach((odd) => {
+            const arr = next[odd.game_id] ? [...next[odd.game_id]] : []
+            if (!arr.some((o) => o.id === odd.id)) {
+              arr.push(odd)
+            }
+            next[odd.game_id] = arr
+          })
+          return next
+        })
+
+        setGames((prev) => [...prev, ...newGames])
+      }
+
+      setLoading(false)
+      setLoadingMore(false)
+    },
+    [supabase]
+  )
+
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -91,80 +151,37 @@ export default function HomePage() {
   }, [supabase.auth, router])
 
   useEffect(() => {
-    const fetchGamesAndOdds = async () => {
-      setLoading(true)
+    if (!user) return
+    setGames([])
+    setOdds({})
+    setHasMore(true)
+    setLoading(true)
+    setLoadingMore(false)
+    fetchPage(0, [])
+  }, [user, fetchPage])
 
-      // Get today's date in YYYY-MM-DD format
-      const today = new Date().toISOString().split('T')[0]
+  const handleLoadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    fetchPage(games.length, games)
+  }, [fetchPage, games, hasMore, loadingMore])
 
-      // Fetch games for today
-      const { data: gamesData, error: gamesError } = await supabase
-        .from('games')
-        .select('*')
-        .eq('date', today)
-        .order('time', { ascending: true })
-
-      if (gamesError) {
-        console.error('Error fetching games:', gamesError)
-        setLoading(false)
-        return
-      }
-
-      setGames(gamesData || [])
-
-      // Fetch odds for all games
-      if (gamesData && gamesData.length > 0) {
-        // Fetch all odds with pagination to avoid the 1000 row limit
-        const allOdds: Odd[] = []
-        const RANGE_SIZE = 1000
-        let from = 0
-        let hasMore = true
-
-        while (hasMore) {
-          const { data: oddsData, error: oddsError } = await supabase
-            .from('odds')
-            .select('*')
-            .range(from, from + RANGE_SIZE - 1)
-
-          if (oddsError) {
-            console.error('Error fetching odds:', oddsError)
-            break
-          }
-
-          if (oddsData && oddsData.length > 0) {
-            allOdds.push(...oddsData)
-            from += RANGE_SIZE
-            hasMore = oddsData.length === RANGE_SIZE
-          } else {
-            hasMore = false
-          }
-        }
-
-        // Group odds by game_id and filter to only games we have
-        const gameIdSet = new Set(gamesData.map(g => g.id))
-        const oddsMap: Record<string, Odd[]> = {}
-
-        allOdds.forEach(odd => {
-          if (gameIdSet.has(odd.game_id)) {
-            if (!oddsMap[odd.game_id]) {
-              oddsMap[odd.game_id] = []
-            }
-            oddsMap[odd.game_id].push(odd)
+  useEffect(() => {
+    const target = loadMoreRef.current
+    if (!target) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            handleLoadMore()
           }
         })
-
-        console.log(`Fetched ${allOdds.length} total odds for ${Object.keys(oddsMap).length} games`)
-        console.log('Sample game odds:', Object.keys(oddsMap)[0], oddsMap[Object.keys(oddsMap)[0]]?.length)
-        setOdds(oddsMap)
-      }
-
-      setLoading(false)
-    }
-
-    if (user) {
-      fetchGamesAndOdds()
-    }
-  }, [supabase, user])
+      },
+      { root: null, rootMargin: '200px', threshold: 0 }
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [handleLoadMore])
 
   const handleSelectPick = (pick: SelectedPick) => {
     const existingPick = selectedPicks.find(p => p.game.event_id === pick.game.event_id)
@@ -321,6 +338,16 @@ export default function HomePage() {
                 />
               )
             })}
+            <div ref={loadMoreRef} className="flex justify-center py-6">
+              {hasMore && (
+                <div className="flex items-center gap-3 text-slate-400 text-sm">
+                  {loadingMore && (
+                    <span className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500" />
+                  )}
+                  <span>{loadingMore ? 'Loading more games...' : 'Scroll to load more games'}</span>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
