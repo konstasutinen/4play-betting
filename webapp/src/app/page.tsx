@@ -358,6 +358,11 @@ export default function HomePage() {
         onClose={handleCloseMarkets}
         onTogglePin={handleTogglePin}
         onSelectOutcome={handleSelectOutcome}
+        selectedOddId={
+          marketsGame
+            ? selectedPicks.find((p) => p.game.id === marketsGame.id)?.odd.id || null
+            : null
+        }
         matchInfo={modalMatchInfo}
       />
 

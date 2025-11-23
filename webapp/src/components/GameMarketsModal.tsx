@@ -24,6 +24,7 @@ type GameMarketsModalProps = {
   onClose: () => void
   onTogglePin: (marketId: string) => void
   onSelectOutcome: (marketId: string, outcomeId: string) => void
+  selectedOddId?: string | null
   matchInfo?: {
     homeTeam: string
     awayTeam: string
@@ -49,6 +50,7 @@ export default function GameMarketsModal({
   onClose,
   onTogglePin,
   onSelectOutcome,
+  selectedOddId,
   matchInfo
 }: GameMarketsModalProps) {
   const [activeTab, setActiveTab] = useState<Category>('popular')
@@ -141,10 +143,10 @@ export default function GameMarketsModal({
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex sm:items-center sm:justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-30 flex sm:items-center sm:justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm sm:bottom-0 bottom-[140px]" onClick={onClose} />
 
-      <div className="relative w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-4xl bg-slate-900 text-white shadow-2xl rounded-none sm:rounded-2xl flex flex-col border border-slate-800">
+      <div className="relative w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-4xl bg-slate-900 text-white shadow-2xl rounded-none sm:rounded-2xl flex flex-col border border-slate-800 sm:mb-0 mb-[140px]">
         <header className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 to-slate-850">
           <div className="flex items-center gap-3">
             <button
@@ -187,7 +189,7 @@ export default function GameMarketsModal({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-6 bg-gradient-to-b from-slate-900 to-slate-950">
+        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-24 sm:pb-6 bg-gradient-to-b from-slate-900 to-slate-950">
           {activeMarkets.length === 0 && (
             <div className="text-center text-slate-400 text-sm py-8">No markets available for this category.</div>
           )}
@@ -245,9 +247,20 @@ export default function GameMarketsModal({
                       <button
                         key={outcome.id}
                         onClick={() => onSelectOutcome(market.id, outcome.id)}
-                        className="flex-1 min-w-[30%] rounded-lg border border-slate-700 px-3 py-2 text-sm font-medium text-center bg-slate-900/60 hover:border-purple-500/70 hover:shadow-lg hover:shadow-purple-500/10 transition"
+                        className={`flex-1 min-w-[30%] rounded-lg border px-3 py-2 text-sm font-medium text-center transition ${
+                          selectedOddId === outcome.id
+                            ? 'border-purple-500 bg-purple-600/20 text-white shadow-lg shadow-purple-500/20'
+                            : 'border-slate-700 bg-slate-900/60 hover:border-purple-500/70 hover:shadow-lg hover:shadow-purple-500/10'
+                        }`}
                       >
-                        <div className="text-slate-100">{outcome.label}</div>
+                        <div className="flex items-center justify-center gap-1 text-slate-100">
+                          {selectedOddId === outcome.id && (
+                            <svg className="w-4 h-4 text-purple-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                          <span>{outcome.label}</span>
+                        </div>
                         <div className="text-purple-300 text-xs font-semibold mt-0.5">{outcome.odds.toFixed(2)}</div>
                       </button>
                     ))}
