@@ -12,7 +12,7 @@ import type { User } from '@supabase/supabase-js'
 
 const PAGE_SIZE = 20
 
-type Category = 'popular' | 'main' | 'goals' | 'handicaps' | 'players' | 'other'
+type Category = 'popular' | 'main' | 'goals' | 'handicaps' | 'players' | 'periods' | 'other'
 
 type Market = {
   id: string
@@ -42,6 +42,7 @@ export default function HomePage() {
   // Basic heuristic to bucket market names into categories for tab filtering
   const getCategoryForMarket = (marketName: string): Category => {
     const name = marketName.toLowerCase()
+    if (name.includes('period 1') || name.includes('period 2') || name.includes('period 3') || name.includes('0:00') || name.includes('1st period') || name.includes('2nd period') || name.includes('3rd period')) return 'periods'
     if (name.includes('handicap') || name.includes('spread') || name.includes('line')) return 'handicaps'
     if (name.includes('goal') || name.includes('over') || name.includes('under') || name.includes('total')) return 'goals'
     if (name.includes('player') || name.includes('scorer') || name.includes('assist')) return 'players'
@@ -53,7 +54,17 @@ export default function HomePage() {
     const gameOdds = odds[game.id] || []
     const grouped: Record<string, Odd[]> = {}
 
+    const isInlineMarket = (marketName: string) => {
+      const lower = marketName.toLowerCase()
+      const isCorrectScore = lower.startsWith('correct score')
+      const isTotalGoalsWhole = lower.includes('total goals') && !lower.includes('period') && !lower.includes('by') && !lower.includes('0:00')
+      return isCorrectScore || isTotalGoalsWhole
+    }
+
     gameOdds.forEach((odd) => {
+      if (isInlineMarket(odd.market)) {
+        return
+      }
       if (!grouped[odd.market]) {
         grouped[odd.market] = []
       }
@@ -305,7 +316,7 @@ export default function HomePage() {
         {/* Loading State */}
         {loading && (
           <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0E8BFF]"></div>
             <p className="text-slate-400 mt-4">Loading games...</p>
           </div>
         )}
@@ -342,7 +353,7 @@ export default function HomePage() {
               {hasMore && (
                 <div className="flex items-center gap-3 text-slate-400 text-sm">
                   {loadingMore && (
-                    <span className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500" />
+                    <span className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#0E8BFF]" />
                   )}
                   <span>{loadingMore ? 'Loading more games...' : 'Scroll to load more games'}</span>
                 </div>
