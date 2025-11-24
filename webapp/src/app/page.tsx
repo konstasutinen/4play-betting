@@ -301,13 +301,13 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen pb-64">
+    <div className="min-h-screen pb-64 bg-[#05070A]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
             Today&apos;s Games
           </h1>
-          <p className="text-slate-400">Select 4 picks from different games to create your ticket</p>
+          <p className="text-[#A0A8B5]">Select 4 picks from different games to create your ticket</p>
         </div>
 
         {/* Sport Filter */}
@@ -317,14 +317,14 @@ export default function HomePage() {
         {loading && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0E8BFF]"></div>
-            <p className="text-slate-400 mt-4">Loading games...</p>
+            <p className="text-[#A0A8B5] mt-4">Loading games...</p>
           </div>
         )}
 
         {/* No Games State */}
         {!loading && filteredGames.length === 0 && (
-          <div className="text-center py-12 bg-slate-800/50 rounded-lg border border-slate-700">
-            <p className="text-slate-400 text-lg">
+          <div className="text-center py-12 bg-[#0D1117] rounded-2xl border border-[#1E2430]">
+            <p className="text-[#A0A8B5] text-lg">
               {sportFilter === 'all'
                 ? 'No games available today. Check back later!'
                 : `No ${sportFilter} games available today.`}
@@ -351,7 +351,7 @@ export default function HomePage() {
             })}
             <div ref={loadMoreRef} className="flex justify-center py-6">
               {hasMore && (
-                <div className="flex items-center gap-3 text-slate-400 text-sm">
+                <div className="flex items-center gap-3 text-[#A0A8B5] text-sm">
                   {loadingMore && (
                     <span className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#0E8BFF]" />
                   )}
