@@ -77,13 +77,13 @@ def run_phase2_url_matcher():
 
 
 def get_latest_file(directory: Path, prefix: str, suffix: str) -> Path:
-    """Get the most recent file matching pattern"""
+    """Get the most recent file matching pattern by modification time"""
     files = list(directory.glob(f"{prefix}*{suffix}"))
     if not files:
         raise FileNotFoundError(f"No files found in {directory} matching {prefix}*{suffix}")
 
-    # Sort by filename (which includes timestamp) and get latest
-    files.sort(reverse=True)
+    # Sort by modification time (most recent first) instead of alphabetically
+    files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
     return files[0]
 
 
@@ -100,8 +100,8 @@ def load_odds_json() -> list:
     return odds_data
 
 
-def load_matched_games_json() -> list:
-    """Load latest matched games JSON from Phase 2"""
+def load_matched_games_json() -> dict:
+    """Load latest matched games JSON from Phase 2 and index by eventId"""
     print("\n📂 Loading matched games data...")
     try:
         latest_matched_file = get_latest_file(MATCHED_GAMES_DIR, "matched_games_", ".json")
@@ -110,11 +110,17 @@ def load_matched_games_json() -> list:
         with open(latest_matched_file, 'r', encoding='utf-8') as f:
             matched_games = json.load(f)
 
-        print(f"   Loaded {len(matched_games)} matched games with Flashscore URLs")
-        return matched_games
+        # Create dictionary indexed by eventId for O(1) lookup
+        matched_dict = {}
+        for game in matched_games:
+            if 'eventId' in game:
+                matched_dict[game['eventId']] = game
+
+        print(f"   Loaded {len(matched_games)} matched games ({len(matched_dict)} with eventId)")
+        return matched_dict
     except FileNotFoundError:
         print("   ⚠️  No matched games found - will upload games without Flashscore URLs")
-        return []
+        return {}
 
 
 def filter_todays_games(odds_data: list) -> dict:
@@ -124,22 +130,21 @@ def filter_todays_games(odds_data: list) -> dict:
     today = datetime.now().date()
     today_str = today.strftime("%Y-%m-%d")
 
-    # Group by unique event (event_id)
+    # Group by unique event using Kambi eventId
     events = {}
 
     for bet in odds_data:
         if bet['date'] != today_str:
             continue
 
-        # Create unique event key
-        event_key = f"{bet['date']}|{bet['time']}|{bet['match']}"
+        # Use Kambi eventId as the key (it's unique and consistent)
+        kambi_event_id = bet.get('eventId')
 
-        if event_key not in events:
-            # Use a simple hash as event_id (or derive from PAF API if available)
-            event_id = f"{bet['sport'][:3]}_{bet['date']}_{bet['time'].replace(':', '')}_{hash(bet['match']) % 1000000}"
-
-            events[event_key] = {
-                'event_id': event_id,
+        if kambi_event_id and kambi_event_id not in events:
+            # Use Kambi eventId directly instead of creating hash
+            events[kambi_event_id] = {
+                'event_id': f"kambi_{kambi_event_id}",  # For Supabase internal ID
+                'kambi_event_id': kambi_event_id,  # Store Kambi ID
                 'date': bet['date'],
                 'time': bet['time'],
                 'sport': bet['sport'],
@@ -148,7 +153,8 @@ def filter_todays_games(odds_data: list) -> dict:
                 'odds': []
             }
 
-        events[event_key]['odds'].append(bet)
+        if kambi_event_id:
+            events[kambi_event_id]['odds'].append(bet)
 
     print(f"   Found {len(events)} unique games for today")
     return events
@@ -164,16 +170,31 @@ def check_game_availability(game_time: str) -> bool:
     return time_until_start > 2
 
 
-def match_flashscore_url(match_name: str, matched_games: list) -> str | None:
-    """Find Flashscore URL for a game by matching team names"""
-    for game in matched_games:
-        if game['match'] == match_name:
+def match_flashscore_url(kambi_event_id: int, match_name: str, matched_games_dict: dict) -> str | None:
+    """Find Flashscore URL using Kambi event ID (fast O(1) lookup)
+
+    Args:
+        kambi_event_id: Kambi API event ID (primary matching key)
+        match_name: Team names as fallback
+        matched_games_dict: Dictionary indexed by eventId
+
+    Returns:
+        Flashscore URL or None
+    """
+    # TIER 1: Try to match by Kambi event ID (O(1), most reliable)
+    if kambi_event_id and kambi_event_id in matched_games_dict:
+        return matched_games_dict[kambi_event_id].get('flashscoreUrl')
+
+    # TIER 2: Fallback to string matching (O(n), less reliable)
+    for game in matched_games_dict.values():
+        if game.get('match') == match_name:
             return game.get('flashscoreUrl')
+
     return None
 
 
-def upload_to_supabase(events: dict, matched_games: list):
-    """Upload games and odds to Supabase"""
+def upload_to_supabase(events: dict, matched_games_dict: dict):
+    """Upload games and odds to Supabase using event ID-based matching"""
     import time
 
     print("\n📤 Uploading to Supabase...")
@@ -186,24 +207,38 @@ def upload_to_supabase(events: dict, matched_games: list):
     games_uploaded = 0
     games_skipped = 0
     odds_uploaded = 0
+    id_matches = 0
+    string_matches = 0
     BATCH_SIZE = 100  # Insert odds in batches
 
-    for event_key, event in events.items():
+    for kambi_event_id, event in events.items():
         # Check if game is available
         is_available = check_game_availability(event['time'])
 
-        # Find Flashscore URL
-        flashscore_url = match_flashscore_url(event['match'], matched_games)
+        # Find Flashscore URL using Kambi event ID (with string fallback)
+        flashscore_url = match_flashscore_url(
+            kambi_event_id=event.get('kambi_event_id'),
+            match_name=event['match'],
+            matched_games_dict=matched_games_dict
+        )
+
+        # Track match method for debugging
+        if flashscore_url:
+            if kambi_event_id in matched_games_dict:
+                id_matches += 1
+            else:
+                string_matches += 1
 
         # Skip games without Flashscore URL
         if not flashscore_url:
             games_skipped += 1
-            print(f"   ⏭️  Skipped (no URL) - {event['sport']}: {event['match']}")
+            print(f"   ❌ No match found: {event['league']} - {event['match']}")
             continue
 
         # Insert game with retry logic
         game_data = {
             'event_id': event['event_id'],
+            'kambi_event_id': event.get('kambi_event_id'),  # Store real Kambi event ID
             'date': event['date'],
             'time': event['time'],
             'sport': event['sport'],
@@ -229,7 +264,9 @@ def upload_to_supabase(events: dict, matched_games: list):
                 'event_id': event['event_id'],
                 'market': bet['market'],
                 'option': bet['option'],
-                'odd': float(bet['odd'])
+                'odd': float(bet['odd']),
+                'outcome_id': bet.get('outcomeId'),
+                'bet_offer_id': bet.get('betOfferId')
             }
             odds_data.append(odd_data)
 
@@ -257,6 +294,8 @@ def upload_to_supabase(events: dict, matched_games: list):
 
     print(f"\n✅ Upload complete!")
     print(f"   Games uploaded: {games_uploaded}")
+    print(f"   - Matched by event ID: {id_matches}")
+    print(f"   - Matched by string: {string_matches}")
     print(f"   Games skipped (no URL): {games_skipped}")
     print(f"   Odds: {odds_uploaded}")
 
