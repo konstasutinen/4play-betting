@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 
-type Category = 'popular' | 'main' | 'goals' | 'handicaps' | 'players' | 'other'
+type Category = 'popular' | 'main' | 'goals' | 'handicaps' | 'players' | 'periods' | 'other'
 
 type Outcome = {
   id: string
@@ -39,6 +39,7 @@ const CATEGORY_TABS: { key: Category; label: string }[] = [
   { key: 'goals', label: 'Goals' },
   { key: 'handicaps', label: 'Handicaps' },
   { key: 'players', label: 'Players' },
+  { key: 'periods', label: 'Periods' },
   { key: 'other', label: 'Other' }
 ]
 
@@ -61,6 +62,7 @@ export default function GameMarketsModal({
     goals: [],
     handicaps: [],
     players: [],
+    periods: [],
     other: []
   })
 
@@ -71,11 +73,16 @@ export default function GameMarketsModal({
       goals: [],
       handicaps: [],
       players: [],
+      periods: [],
       other: []
     }
 
     markets.forEach((market) => {
-      grouped[market.category].push(market)
+      if (!grouped[market.category]) {
+        grouped.other.push(market)
+      } else {
+        grouped[market.category].push(market)
+      }
     })
 
     // Popular = pinned + a few key main markets (deduped)
