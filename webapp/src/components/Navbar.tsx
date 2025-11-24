@@ -47,10 +47,10 @@ export default function Navbar() {
             <Image
               src="/4PLAY_logo_new.png"
               alt="4PLAY"
-              width={300}
-              height={80}
+              width={450}
+              height={120}
               priority
-              className="h-16 w-auto"
+              className="h-24 w-auto"
             />
             <span className="sr-only">4PLAY</span>
           </Link>
