@@ -45,12 +45,12 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center space-x-2">
             <Image
-              src="/4PLAY_LOGO_24_11.png"
+              src="/4PLAY_logo_new.png"
               alt="4PLAY"
-              width={120}
-              height={32}
+              width={150}
+              height={40}
               priority
-              className="h-8 w-auto"
+              className="h-10 w-auto"
             />
             <span className="sr-only">4PLAY</span>
           </Link>
