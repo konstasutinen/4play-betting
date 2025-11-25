@@ -96,6 +96,7 @@ export default function HomePage() {
   const fetchPage = useCallback(
     async (offset: number, existingGames: Game[]) => {
       const today = new Date().toISOString().split('T')[0]
+      console.log('[DEBUG] Fetching games for date:', today)
 
       const { data: gamesData, error: gamesError } = await supabase
         .from('games')
@@ -103,6 +104,8 @@ export default function HomePage() {
         .eq('date', today)
         .order('time', { ascending: true })
         .range(offset, offset + PAGE_SIZE - 1)
+
+      console.log('[DEBUG] Fetched games count:', gamesData?.length || 0)
 
       if (gamesError) {
         console.error('Error fetching games:', gamesError)
@@ -278,11 +281,13 @@ export default function HomePage() {
 
   // Filter games by sport and also hide games that have already started
   const now = new Date()
+  console.log('[DEBUG] Current time:', now.toISOString(), '| Games before filter:', games.length)
   const filteredGames = (sportFilter === 'all' ? games : games.filter(g => g.sport === sportFilter))
     .filter(g => {
       const gameDateTime = new Date(`${g.date}T${g.time}`)
       return gameDateTime > now
     })
+  console.log('[DEBUG] Games after filter:', filteredGames.length)
 
   const modalMatchInfo = useMemo(() => {
     if (!marketsGame) return undefined
