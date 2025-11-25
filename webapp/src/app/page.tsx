@@ -284,7 +284,8 @@ export default function HomePage() {
   console.log('[DEBUG] Current time:', now.toISOString(), '| Games before filter:', games.length)
   const filteredGames = (sportFilter === 'all' ? games : games.filter(g => g.sport === sportFilter))
     .filter(g => {
-      const gameDateTime = new Date(`${g.date}T${g.time}`)
+      // Parse game time as UTC by appending 'Z' to treat it as UTC time
+      const gameDateTime = new Date(`${g.date}T${g.time}Z`)
       return gameDateTime > now
     })
   console.log('[DEBUG] Games after filter:', filteredGames.length)
