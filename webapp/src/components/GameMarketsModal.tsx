@@ -154,14 +154,25 @@ export default function GameMarketsModal({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm sm:bottom-0 bottom-[140px]" onClick={onClose} />
 
       <div className="relative w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-4xl bg-[#0B0F15] text-white shadow-xl rounded-none sm:rounded-2xl flex flex-col border border-[#1E2430] sm:mb-0 mb-[140px]">
+        {/* Mobile-only fixed close button */}
+        <button
+          onClick={onClose}
+          className="sm:hidden fixed top-4 right-4 z-50 p-3 rounded-full bg-slate-800/90 active:bg-slate-600 transition-colors border-2 border-slate-600 shadow-lg touch-manipulation"
+          aria-label="Close"
+        >
+          <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
         <header className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-[#1E2430] bg-[#0B0F15]">
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="p-2 rounded-full bg-slate-800/70 hover:bg-slate-700 active:bg-slate-600 transition-colors border border-slate-700 touch-manipulation"
+              className="hidden sm:block p-2 rounded-full bg-slate-800/70 hover:bg-slate-700 active:bg-slate-600 transition-colors border border-slate-700 touch-manipulation"
               aria-label="Close"
             >
-              <svg className="w-6 h-6 sm:w-5 sm:h-5 text-slate-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-5 h-5 text-slate-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
