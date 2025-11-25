@@ -25,29 +25,11 @@ export default function GameCard({
     (odd) => odd.market === 'Match Odds - Regular Time' || odd.market === 'Full Time'
   )
 
-  const isCorrectScore = (market: string) => market.toLowerCase().startsWith('correct score')
-  const isTotalGoalsWholeGame = (market: string) => {
-    const lower = market.toLowerCase()
-    return lower.includes('total goals') && !lower.includes('period') && !lower.includes('by') && !lower.includes('0:00')
-  }
-  const isInlineMarket = (market: string) => isCorrectScore(market) || isTotalGoalsWholeGame(market)
-
-  // Inline markets (Correct Score, whole-game totals)
-  const inlineGrouped = odds.reduce((acc, odd) => {
-    if (odd.market === 'Match Odds - Regular Time' || odd.market === 'Full Time') return acc
-    if (!isInlineMarket(odd.market)) return acc
-    if (!acc[odd.market]) acc[odd.market] = []
-    acc[odd.market].push(odd)
-    return acc
-  }, {} as Record<string, Odd[]>)
-  const inlineMarkets = Object.entries(inlineGrouped).map(([name, group]) => ({ name, odds: group }))
-
-  // Other markets (for modal)
+  // All non-match-odds markets go to modal
   const otherMarkets = odds.filter(
     (odd) =>
       odd.market !== 'Match Odds - Regular Time' &&
-      odd.market !== 'Full Time' &&
-      !isInlineMarket(odd.market)
+      odd.market !== 'Full Time'
   )
 
   const groupedMarkets = otherMarkets.reduce((acc, odd) => {
@@ -140,42 +122,6 @@ export default function GameCard({
                 />
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Inline key markets (Correct Score, Total Goals) */}
-        {inlineMarkets.length > 0 && (
-          <div className="mt-5 space-y-4">
-            {inlineMarkets.map((market) => (
-              <div key={market.name} className="space-y-2">
-                <p className="text-xs text-[#6B7380] font-semibold uppercase tracking-wide">
-                  {market.name}
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {market.odds.map((odd) => (
-                    <button
-                      key={odd.id}
-                      onClick={() => handleOddClick(odd)}
-                      disabled={!game.is_available || (isGameSelected && selectedOddId !== odd.id)}
-                      className={`py-3 px-3 rounded-xl text-left transition-all duration-200 border ${
-                        selectedOddId === odd.id
-                          ? 'border-[#0E8BFF] bg-[#0E8BFF]/15'
-                          : !game.is_available || (isGameSelected && selectedOddId !== odd.id)
-                          ? 'border-[#1E2430] bg-[#141820] cursor-not-allowed opacity-60'
-                          : 'border-[#1E2430] bg-[#141820] hover:border-[#0E8BFF]'
-                      }`}
-                    >
-                      <div className={`text-xs mb-1 truncate ${selectedOddId === odd.id ? 'text-white' : 'text-[#A0A8B5]'}`}>
-                        {odd.option}
-                      </div>
-                      <div className={`text-lg font-bold ${selectedOddId === odd.id ? 'text-white' : 'text-white'}`}>
-                        {odd.odd.toFixed(2)}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
           </div>
         )}
 
