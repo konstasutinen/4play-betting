@@ -199,7 +199,7 @@ export default function ProfilePage() {
                           Ticket from {new Date(parlay.created_at).toLocaleDateString('en-GB')}
                         </p>
                         <p className="text-sm text-[#A0A8B5]">
-                          Total Odds: <span className="text-[#0E8BFF] font-bold">{parlay.total_odds.toFixed(2)}</span>
+                          Score: <span className="text-[#0E8BFF] font-bold">{parlay.total_odds.toFixed(2)}</span>
                         </p>
                       </div>
                     </div>
