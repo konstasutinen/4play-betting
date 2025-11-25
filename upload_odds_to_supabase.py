@@ -9,7 +9,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 import json
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import os
 from dotenv import load_dotenv
@@ -28,7 +28,7 @@ if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 # Paths
-ODDS_DIR = Path("C:/Users/35844/Parlay/odds")
+ODDS_DIR = Path("C:/Users/35844/4Play/odds")
 FLASH_URLS_DIR = Path("C:/Users/35844/Parlay/Flash_URLs")
 ODDS_JSON_DIR = ODDS_DIR / "Scraped_odds_json"
 MATCHED_GAMES_DIR = FLASH_URLS_DIR / "URL_matching_data"
@@ -160,10 +160,12 @@ def filter_todays_games(odds_data: list) -> dict:
     return events
 
 
-def check_game_availability(game_time: str) -> bool:
+def check_game_availability(game_date: str, game_time: str) -> bool:
     """Check if game is still available (>2 minutes until start)"""
-    now = datetime.now()
-    game_datetime = datetime.combine(datetime.now().date(), datetime.strptime(game_time, "%H:%M").time())
+    now = datetime.now(timezone.utc)
+    # Parse date and time as UTC
+    game_datetime = datetime.strptime(f"{game_date} {game_time}", "%Y-%m-%d %H:%M")
+    game_datetime = game_datetime.replace(tzinfo=timezone.utc)
 
     time_until_start = (game_datetime - now).total_seconds() / 60  # minutes
 
@@ -213,7 +215,7 @@ def upload_to_supabase(events: dict, matched_games_dict: dict):
 
     for kambi_event_id, event in events.items():
         # Check if game is available
-        is_available = check_game_availability(event['time'])
+        is_available = check_game_availability(event['date'], event['time'])
 
         # Find Flashscore URL using Kambi event ID (with string fallback)
         flashscore_url = match_flashscore_url(
