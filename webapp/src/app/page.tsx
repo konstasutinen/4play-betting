@@ -118,18 +118,26 @@ export default function HomePage() {
 
       if (newGames.length > 0) {
         const ids = newGames.map((g) => g.id)
-        const { data: oddsData, error: oddsError } = await supabase
-          .from('odds')
-          .select('*')
-          .in('game_id', ids)
 
-        if (oddsError) {
-          console.error('Error fetching odds:', oddsError)
+        // Fetch odds for each game individually to avoid 1000-row Supabase limit
+        // When fetching multiple games with .in(), games with many odds can get truncated
+        const allOddsData: any[] = []
+        for (const gameId of ids) {
+          const { data: gameOdds, error: oddsError } = await supabase
+            .from('odds')
+            .select('*')
+            .eq('game_id', gameId)
+
+          if (oddsError) {
+            console.error(`Error fetching odds for game ${gameId}:`, oddsError)
+          } else if (gameOdds) {
+            allOddsData.push(...gameOdds)
+          }
         }
 
         setOdds((prev) => {
           const next = { ...prev }
-          ;(oddsData || []).forEach((odd) => {
+          allOddsData.forEach((odd) => {
             const arr = next[odd.game_id] ? [...next[odd.game_id]] : []
             if (!arr.some((o) => o.id === odd.id)) {
               arr.push(odd)
