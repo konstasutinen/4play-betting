@@ -20,10 +20,14 @@ export default function GameCard({
   selectedOddId,
   onOpenMarkets
 }: GameCardProps) {
-  // Match odds - regular time or full time
-  const matchOdds = odds.filter(
-    (odd) => odd.market === 'Match Odds - Regular Time' || odd.market === 'Full Time'
-  )
+  // Match odds - regular time or full time, sorted in 1X2 order
+  const matchOdds = odds
+    .filter((odd) => odd.market === 'Match Odds - Regular Time' || odd.market === 'Full Time')
+    .sort((a, b) => {
+      // Sort order: 1, X, 2
+      const order = { '1': 0, 'X': 1, '2': 2 }
+      return (order[a.option as keyof typeof order] ?? 3) - (order[b.option as keyof typeof order] ?? 3)
+    })
 
   // All non-match-odds markets go to modal
   const otherMarkets = odds.filter(
