@@ -299,8 +299,8 @@ export default function HomePage() {
   const now = new Date()
   const filteredGames = (sportFilter === 'all' ? games : games.filter(g => g.sport === sportFilter))
     .filter(g => {
-      // Parse game time as UTC by appending 'Z' to treat it as UTC time
-      const gameDateTime = new Date(`${g.date}T${g.time}Z`)
+      // Parse game time without 'Z' to treat it as local/CET time for filtering
+      const gameDateTime = new Date(`${g.date}T${g.time}`)
       return gameDateTime > now
     })
     .filter(g => selectedLeagues.length === 0 || selectedLeagues.includes(g.league))
@@ -309,7 +309,7 @@ export default function HomePage() {
   const availableLeagues = useMemo(() => {
     const sportGames = sportFilter === 'all' ? games : games.filter(g => g.sport === sportFilter)
     const futureGames = sportGames.filter(g => {
-      const gameDateTime = new Date(`${g.date}T${g.time}Z`)
+      const gameDateTime = new Date(`${g.date}T${g.time}`)
       return gameDateTime > now
     })
 
