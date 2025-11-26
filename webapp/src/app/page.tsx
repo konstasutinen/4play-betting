@@ -6,6 +6,7 @@ import type { Game, Odd, SelectedPick } from '@/types/database.types'
 import GameCard from '@/components/GameCard'
 import TicketBar from '@/components/TicketBar'
 import SportFilter from '@/components/SportFilter'
+import LeagueFilter from '@/components/LeagueFilter'
 import GameMarketsModal from '@/components/GameMarketsModal'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
@@ -30,6 +31,7 @@ export default function HomePage() {
   const [hasMore, setHasMore] = useState(true)
   const [selectedPicks, setSelectedPicks] = useState<SelectedPick[]>([])
   const [sportFilter, setSportFilter] = useState<'all' | 'Ice Hockey' | 'Football'>('all')
+  const [selectedLeagues, setSelectedLeagues] = useState<string[]>([])
   const [user, setUser] = useState<User | null>(null)
   const [isMarketsOpen, setIsMarketsOpen] = useState(false)
   const [marketsForGame, setMarketsForGame] = useState<Market[]>([])
@@ -48,6 +50,20 @@ export default function HomePage() {
     if (name.includes('player') || name.includes('scorer') || name.includes('assist')) return 'players'
     if (name.includes('full time') || name.includes('match') || name.includes('winner') || name.includes('1x2')) return 'main'
     return 'other'
+  }
+
+  // Get league popularity rank for sorting
+  const getLeagueRank = (leagueName: string): number => {
+    const hockeyLeagues = ['NHL', 'KHL', 'Liiga', 'SHL', 'NLA', 'DEL', 'Extraliga']
+    const footballLeagues = ['Premier League', 'La Liga', 'Bundesliga', 'Serie A', 'Ligue 1', 'Champions League', 'Europa League', 'Championship']
+
+    const hockeyIndex = hockeyLeagues.findIndex(l => leagueName.toLowerCase().includes(l.toLowerCase()))
+    if (hockeyIndex !== -1) return hockeyIndex
+
+    const footballIndex = footballLeagues.findIndex(l => leagueName.toLowerCase().includes(l.toLowerCase()))
+    if (footballIndex !== -1) return footballIndex
+
+    return 999 // Unknown leagues go last
   }
 
   const buildMarketsForGame = (game: Game): Market[] => {
@@ -281,24 +297,38 @@ export default function HomePage() {
 
   // Filter games by sport and also hide games that have already started
   const now = new Date()
-  console.log('[DEBUG] Current time:', now.toISOString(), '| Games before filter:', games.length)
   const filteredGames = (sportFilter === 'all' ? games : games.filter(g => g.sport === sportFilter))
     .filter(g => {
       // Parse game time as UTC by appending 'Z' to treat it as UTC time
       const gameDateTime = new Date(`${g.date}T${g.time}Z`)
       return gameDateTime > now
     })
-  console.log('[DEBUG] Games after filter:', filteredGames.length)
+    .filter(g => selectedLeagues.length === 0 || selectedLeagues.includes(g.league))
+
+  // Extract available leagues with counts for the league filter
+  const availableLeagues = useMemo(() => {
+    const sportGames = sportFilter === 'all' ? games : games.filter(g => g.sport === sportFilter)
+    const futureGames = sportGames.filter(g => {
+      const gameDateTime = new Date(`${g.date}T${g.time}Z`)
+      return gameDateTime > now
+    })
+
+    const leagueCounts = futureGames.reduce((acc, game) => {
+      acc[game.league] = (acc[game.league] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    return Object.entries(leagueCounts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => getLeagueRank(a.name) - getLeagueRank(b.name))
+  }, [games, sportFilter, now])
 
   const modalMatchInfo = useMemo(() => {
     if (!marketsGame) return undefined
     const parts = marketsGame.match.split('-').map(p => p.trim())
     const homeTeam = parts[0] || marketsGame.match
     const awayTeam = parts[1] || ''
-    const startTime = new Date(`${marketsGame.date}T${marketsGame.time}`).toLocaleString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
+    const startTime = new Date(`${marketsGame.date}T${marketsGame.time}Z`).toLocaleTimeString('en-GB', {
       hour: '2-digit',
       minute: '2-digit'
     })
@@ -326,6 +356,16 @@ export default function HomePage() {
 
         {/* Sport Filter */}
         <SportFilter selected={sportFilter} onChange={setSportFilter} />
+
+        {/* League Filter - only show when specific sport is selected */}
+        {sportFilter !== 'all' && (
+          <LeagueFilter
+            sport={sportFilter}
+            availableLeagues={availableLeagues}
+            selected={selectedLeagues}
+            onChange={setSelectedLeagues}
+          />
+        )}
 
         {/* Loading State */}
         {loading && (
